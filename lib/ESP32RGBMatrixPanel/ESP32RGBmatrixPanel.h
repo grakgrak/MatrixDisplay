@@ -117,11 +117,13 @@ public:
 
     //virtual void startWrite(void)	{vTaskSuspendAll();}
     //virtual void endWrite(void)		{xTaskResumeAll();}
-    virtual void startWrite(void)	{++_busy;}
-    virtual void endWrite(void)		{--_busy;}
+    // virtual void startWrite(void)	{++_busy;}
+    // virtual void endWrite(void)		{--_busy;}
+    virtual void startWrite(void)	{}
+    virtual void endWrite(void)		{}
 
 private:
-	volatile int _busy = 0;
+	//volatile int _busy = 0;
 	volatile byte loopNr = 0;
 	volatile byte loopNrOn = 0;
 	void initGPIO();

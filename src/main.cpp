@@ -107,6 +107,8 @@ void main_task(void *pvParameter)
 //--------------------------------------------------------------------
 void webserver_task(void *pvParameter)
 {
+	// Inspect our own high water mark on entering the task. 
+	//int stackusage = uxTaskGetStackHighWaterMark(NULL);
 	while (true)
 	{
 		if( otaUpdate == false)

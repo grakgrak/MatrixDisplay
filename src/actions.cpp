@@ -205,15 +205,13 @@ const char *TActionRenderer::Interp(const char *code, int cycle, int limit)
 //--------------------------------------------------------------------
 void TActionRenderer::Set(const String &intro, const String &act1, const String &act2, const String &act3, const String &act4)
 {
-    Serial.printf("%s:%s:%s:%s:%s\n", intro.c_str(), act1.c_str(), act2.c_str(), act3.c_str(), act4.c_str());
+    Serial.printf("Setting Jobs %s:%s:%s:%s:%s\n", intro.c_str(), act1.c_str(), act2.c_str(), act3.c_str(), act4.c_str());
 
     Intro = intro;
     jobs[0].Set(act1);
     jobs[1].Set(act2);
     jobs[2].Set(act3);
     jobs[3].Set(act4);
-
-    Serial.printf("Active jobs = %d\n", activeJobCount());
 }
 //--------------------------------------------------------------------
 int TActionRenderer::activeJobCount()
