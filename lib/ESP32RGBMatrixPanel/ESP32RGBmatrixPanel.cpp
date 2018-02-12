@@ -88,7 +88,8 @@ void ESP32RGBmatrixPanel::black()
 #define loops 10
 void ESP32RGBmatrixPanel::update()
 {
-	//vTaskSuspendAll();
+	//if(_busy > 0)
+		//return;
 
 	if (loopNr == 0)
 		drawRow(); //Display OFF-time (25 �s).
@@ -100,8 +101,6 @@ void ESP32RGBmatrixPanel::update()
 	{
 		loopNr = 0;
 	}
-	
-	//xTaskResumeAll();
 }
 
 void ESP32RGBmatrixPanel::setBrightness(byte brightness)

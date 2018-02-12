@@ -6,6 +6,8 @@
 #include "SPI.h"
 #include "WiFi.h"
 #include <NTPClient.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h> // https://github.com/esp8266/Arduino/blob/master/libraries/ArduinoOTA/ArduinoOTA.h
 
 #define BEEPER_PIN 25
 #define WIFI_CONNECT_TIMEOUT 12000
@@ -14,15 +16,20 @@
 //#define PASSWORD "taketheredpill"
 #define SSID "BTHub6-ZPR3"
 #define PASSWORD "Hxv7Kx4raPV7"
+#define HOSTNAME "Matrix64"
 
+//--------------------------------------------------------------------
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 0, 600 * 1000);
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 600 * 1000);
+
+bool otaUpdate = false;
 bool blink = false;
 
+//--------------------------------------------------------------------
 void drawSeconds(int secs, int16_t background)
 {
-	int dx[7] = {1, 0, -1, -1, 0, 1, 0};	// seven slots for safety
-	int dy[7] = {0, 1, 0, 0, -1, 0, 0};
+	int dx[] = {1, 0, -1, -1, 0, 1, 0};	// seven slots for safety
+	int dy[] = {0, 1, 0, 0, -1, 0, 0};
 
 	int x = 32;
 	int y = 0;
@@ -39,6 +46,7 @@ void drawSeconds(int secs, int16_t background)
 	}
 }
 
+//--------------------------------------------------------------------
 void clock(int16_t foreground, int16_t background)
 {
 	matrix.startWrite();
@@ -76,45 +84,45 @@ void clock(int16_t foreground, int16_t background)
 	vTaskDelay(1000);
 }
 
+
+//--------------------------------------------------------------------
 void main_task(void *pvParameter)
 {
-	Serial.println("main task Started");
-
-	matrix.setBrightness(3);
+	matrix.setBrightness(2);
 
 	//actions.push( "'Training Display Demo...' b1 c5 b5 c5 b10 c5 b3 'Squad Workout' p10 w3 r3 [3 w5 r5] '2Finished' D2");
-	actions.AddAction("'Training Display Demo...'c1000");
+
+	ActionRenderer.Intro = "[2'Training Display...']";
 
 	while (true)
 	{
-		String code = actions.GetAction();
+		if( otaUpdate == false)
+			if (ActionRenderer.Render() == false)	// if action renderer is idle then 
+				clock(Colors::WHITE, Colors::GREEN);	//  display the clock
 
-		if (code != "")
-			actions.Interpret(code.c_str(), 0, 0);
-		else
-			clock(RGB(127,127,127), RGB(0,127,0));
-
-		vTaskDelay(1);
+		vTaskDelay(10);
 	}
 }
 
+//--------------------------------------------------------------------
 void webserver_task(void *pvParameter)
 {
-	Serial.println("webserver task Started");
-
 	while (true)
 	{
-		loopWebsite();
+		if( otaUpdate == false)
+			loopWebsite();
 
 		vTaskDelay(1);
 	}
 }
 
+//--------------------------------------------------------------------
 /* create a hardware timer */
 hw_timer_t *displayUpdateTimer = NULL;
 void IRAM_ATTR onDisplayUpdate()
 {
-	matrix.update();
+	if( otaUpdate == false)
+		matrix.update();
 }
 
 //--------------------------------------------------------------------
@@ -126,7 +134,8 @@ bool isWiFiConnected(int timeout)
     {
         if ((millis() - lastConnectedTime) > WIFI_CONNECT_TIMEOUT) // allow time to connect to WiFi - if not then restart
         {
-            Serial.println("Wifi Connect Timeout Restart...");
+            //marquee("Wifi Connect Timeout Restart...", RGB(127,127,127));
+			Serial.println("Wifi Connect Timeout Restart...");
             esp_restart();
         }
         delay(timeout);
@@ -137,44 +146,110 @@ bool isWiFiConnected(int timeout)
     return WiFi.status() == WL_CONNECTED;
 }
 
+//--------------------------------------------------------------------
 void initWifi()
 {
 	Serial.println("InitWiFi");
 
 	WiFi.begin(SSID, PASSWORD);
-    WiFi.setHostname("Matrix64");
+    WiFi.setHostname(HOSTNAME);
+
+    //marquee("Connecting to WiFi...", RGB(127,127,127));
 
     while (isWiFiConnected(750) == false)
-        Serial.println("Connecting to WiFi...");
-    Serial.println("WiFi Connected - " + WiFi.localIP().toString());
+		Serial.print(".");
+
+	String msg = "WiFi Connected - " + WiFi.localIP().toString();
+    //marquee(msg.c_str(), RGB(127,127,127));
 
 	timeClient.begin();
-
+	timeClient.update();
 	//Serial.println(WiFi.softAPIP());
-
-
 	//WiFi.softAP(SSID, PASSWORD);
 	//Serial.println(WiFi.softAPIP());
-
-	initWebsite();
 }
 
+//--------------------------------------------------------------------
 void initTasks()
 {
-	Serial.println("Starting Tasks");
+	Serial.println("Start main task");
+	xTaskCreate(&main_task, "main_task", 8000, NULL, uxTaskPriorityGet(NULL), NULL);
 
-	xTaskCreate(&main_task, "main_task", 2048, NULL, 5, NULL);
-	xTaskCreate(&webserver_task, "webserver_task", 8000, NULL, 2, NULL);
+	Serial.println("Start webserver task");
+	xTaskCreate(&webserver_task, "webserver_task", 8000, NULL, uxTaskPriorityGet(NULL), NULL);
+}
 
+//--------------------------------------------------------------------
+void initMatrix()
+{
 	/* 1 tick take 1/(80MHZ/80) = 1us so we set divider 80 and count up */
 	displayUpdateTimer = timerBegin(0, 80, true);
 
 	/* Attach onTimer function to our timer */
 	timerAttachInterrupt(displayUpdateTimer, &onDisplayUpdate, true);
-	timerAlarmWrite(displayUpdateTimer, 2, true);
+	timerAlarmWrite(displayUpdateTimer, 5, true);
 	timerAlarmEnable(displayUpdateTimer);
 }
 
+//--------------------------------------------------------------------
+void init_OTA()
+{
+	Serial.println("init OTA");
+
+    // ArduinoOTA callback functions
+    ArduinoOTA.onStart([]() {
+		matrix.black();
+		otaUpdate = true;
+        Serial.println("OTA starting...");
+    });
+
+    ArduinoOTA.onEnd([]() {
+        Serial.println("OTA done.Reboot...");
+    });
+
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        static unsigned int prevPcnt = 100;
+        unsigned int pcnt = (progress / (total / 100));
+        unsigned int roundPcnt = 5 * (int)(pcnt / 5);
+        if (roundPcnt != prevPcnt)
+        {
+            prevPcnt = roundPcnt;
+            Serial.println("OTA upload " + String(roundPcnt) + "%");
+        }
+    });
+
+    ArduinoOTA.onError([](ota_error_t error) {
+        Serial.print("OTA Error " + String(error) + ":");
+        const char *line2 = "";
+        switch (error)
+        {
+        case OTA_AUTH_ERROR:
+            line2 = "Auth Failed";
+            break;
+        case OTA_BEGIN_ERROR:
+            line2 = "Begin Failed";
+            break;
+        case OTA_CONNECT_ERROR:
+            line2 = "Connect Failed";
+            break;
+        case OTA_RECEIVE_ERROR:
+            line2 = "Receive Failed";
+            break;
+        case OTA_END_ERROR:
+            line2 = "End Failed";
+            break;
+        }
+        Serial.println(line2);
+    });
+
+    ArduinoOTA.setPort(3232);
+    ArduinoOTA.setHostname(HOSTNAME);
+    //ArduinoOTA.setPassword(HOSTNAME);
+	//ArduinoOTA.setPasswordHash(eecbf409f68cc72c961d8251147ef222);	// MD5 has of Matrix64
+
+    ArduinoOTA.begin();
+}
+//--------------------------------------------------------------------
 void setup()
 {
 	Serial.begin(115200);
@@ -184,12 +259,21 @@ void setup()
 	// digitalWrite(BEEPER_PIN, LOW);
 
 	initWifi();
+	initWebsite();
 	initTasks();
-	Serial.println("OK");
+	initMatrix();
+    init_OTA();
+	Serial.println("Setup Finished");
 }
 
+//--------------------------------------------------------------------
 void loop()
 {
-	timeClient.update();
-	vTaskDelay(1000);
+	if(isWiFiConnected(750))
+	{
+		if( timeClient.update() == false)
+			vTaskDelay(3000);
+        ArduinoOTA.handle();
+	}
+	vTaskDelay(100);
 }

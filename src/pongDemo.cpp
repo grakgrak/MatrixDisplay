@@ -9,10 +9,6 @@
 #include "Arduino.h"
 #include "matrix.h"
 
-#define BLACK 0x0000
-#define WHITE 0xFFFF
-#define GREY  0x5AEB
-
 int16_t h = 32;
 int16_t w = 64;
 
@@ -54,7 +50,7 @@ int16_t lscore = 12;
 int16_t rscore = 4;
 
 void midline() {
-  matrix.drawFastVLine(32, 0, 32, RGB(0,0,127)); // push dash pixels
+  matrix.drawFastVLine(32, 0, 32, Colors::BLUE); // push dash pixels
 }
 
 void lpaddle() {
@@ -78,7 +74,7 @@ void lpaddle() {
   if (lpaddle_y + paddle_h >= h && lpaddle_d == 1) lpaddle_d = 0;
   else if (lpaddle_y <= 0 && lpaddle_d == -1) lpaddle_d = 0;
 
-  matrix.writeFastVLine(lpaddle_x, lpaddle_y, paddle_h, WHITE);
+  matrix.writeFastVLine(lpaddle_x, lpaddle_y, paddle_h, Colors::WHITE);
 }
 
 void rpaddle() {
@@ -102,7 +98,7 @@ void rpaddle() {
   if (rpaddle_y + paddle_h >= h && rpaddle_d == 1) rpaddle_d = 0;
   else if (rpaddle_y <= 0 && rpaddle_d == -1) rpaddle_d = 0;
 
-  matrix.writeFastVLine(rpaddle_x, rpaddle_y, paddle_h, WHITE);
+  matrix.writeFastVLine(rpaddle_x, rpaddle_y, paddle_h, Colors::WHITE);
 }
 
 void calc_target_y() {
@@ -147,7 +143,7 @@ void ball() {
     ball_y += ball_dy; // Keep in bounds
   }
 
-  matrix.drawRect(ball_x, ball_y, ball_w, ball_h, WHITE);
+  matrix.drawRect(ball_x, ball_y, ball_w, ball_h, Colors::WHITE);
 
   oldball_x = ball_x;
   oldball_y = ball_y;
@@ -183,7 +179,7 @@ void pongDemo()
 {
     initgame();
 
-    matrix.setTextColor(RGB(127,127,127));
+    matrix.setTextColor(Colors::WHITE);
 
     for(int i = 0; i < 2000; i++)
         render();

@@ -1,62 +1,59 @@
 #ifndef ACTIONS_H
 #define ACTIONS_H
 #include "matrix.h"
-#include <queue>
-
-class TActions
-{
-public:
-  void AddAction(String code);
-  String GetAction();
-
-  const char *Interpret(const char *code, int cycle, int limit);
-
-private:
-  std::queue<String> _actions;
-  bool _cancelAction = false;
-
-  const char *text(const char *code);
-  const char *prepare(const char *code, int cycle, int limit);
-  const char *work(const char *code, int cycle, int limit);
-  const char *rest(const char *code, int cycle, int limit);
-  const char *brightness(const char *code);
-  const char *repeat(const char *code);
-  const char *runDemo(const char *code);
-};
-
-extern TActions actions;
 
 
 class TActionJob
 {
+  enum TJobState {SLEEPING, PAUSE, RUN, DONE};
 public:
-  int state;  // Pause, run, cancel
+  void Set(const String &code);
+
+  TJobState state = SLEEPING;  // Pause, run, done
 
   int action; // Prep, Work, Rest
-  int secs;
+  int seconds;
   int cycle;
   int limit;
   int16_t colour;
 
-  String code;
-  void update();  // call every second
+  bool Update();
+  inline bool isRunning() { return state == RUN; }
+  inline bool isPaused() { return state == PAUSE; }
+  inline bool isDone() { return state == DONE; }
+  inline bool isActive() { return state != SLEEPING; }
 private:
-  const char *prepare(const char *code, int cycle, int limit);
-  const char *work(const char *code, int cycle, int limit);
-  const char *rest(const char *code, int cycle, int limit);
-  const char *repeat(const char *code);
+  String _code;
+  const char *_ptr;
+  const char *_start;
+  unsigned long _lastTick;
 };
 
 
 class TActionRenderer
 {
 public:
-  void AddFeed(TActionJob &feedJob);
-  void DeleteFeed(TActionJob &feedJob);
+  bool Render();  // paints the action jobs onto the display
 
-  bool HasJobs()  { return _feedJobs.empty() == false; }
+  void Set(const String &intro, const String &act1, const String &act2, const String &act3, const String &act4);
+
+  String Intro; // intro command string
+  String Outro; // outro command string
 private:
-  std::vector<TActionJob> _feedJobs;
+  TActionJob jobs[4];
+
+  int activeJobCount();
+  int doneJobCount();
+
+  const char *Interp(const char *code, int cycle, int limit);
+  const char *pwr(const char *code, int action, int cycle, int limit);
+
+  const char *text(const char *code);
+  const char *brightness(const char *code);
+  const char *repeat(const char *code);
+  const char *runDemo(const char *code);
 };
+
+extern TActionRenderer ActionRenderer;
 
 #endif //ACTIONS_H
