@@ -1,5 +1,6 @@
 #ifndef WEBSITE_H
 #define WEBSITE_H
+#include <WiFiClient.h>
 #include <ESP32WebServer.h>
 #include "actions.h"
 

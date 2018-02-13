@@ -1,5 +1,4 @@
 #include "actions.h"
-#include "demos.h"
 
 TActionRenderer ActionRenderer;
 
@@ -110,31 +109,6 @@ const char *TActionRenderer::text(const char *code)
 }
 
 //--------------------------------------------------------------------
-const char *TActionRenderer::runDemo(const char *code)
-{
-    int demo = 0;
-    code = getValue(code, demo);
-
-    switch (demo)
-    {
-    case 1:
-        wheaterDemo();
-        break;
-    case 2:
-        lavaDemo();
-        break;
-    case 3:
-        primitivesDemo();
-        break;
-    case 4:
-        pongDemo();
-        break;
-    }
-
-    return code;
-}
-
-//--------------------------------------------------------------------
 const char *TActionRenderer::pwr(const char *code, int action, int cycle, int limit)
 {
     int secs = 0;
@@ -189,9 +163,6 @@ const char *TActionRenderer::Interp(const char *code, int cycle, int limit)
             break;
         case 'b':
             code = brightness(code);
-        case 'D':
-            code = runDemo(code);
-            break;
 
         case ' ': // ignore spaces
         case '+':

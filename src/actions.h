@@ -51,7 +51,6 @@ private:
   const char *text(const char *code);
   const char *brightness(const char *code);
   const char *repeat(const char *code);
-  const char *runDemo(const char *code);
 };
 
 extern TActionRenderer ActionRenderer;
