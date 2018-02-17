@@ -359,6 +359,34 @@ bool NTPClient::summertime (int year, byte month, byte day, byte hour, byte tzHo
         return false;
 }
 
+boolean isDST(time_t t)
+{
+	tmElements_t te;
+	te.Year = year(t) - 1970;
+	te.Month = 3;
+	te.Day = 1;
+	te.Hour = 0;
+	te.Minute = 0;
+	te.Second = 0;
+	time_t dstStart, dstEnd, current;
+
+	dstStart = makeTime(te);
+	dstStart = nextSunday(dstStart);
+	dstStart = nextSunday(dstStart);
+	dstStart = nextSunday(dstStart); //third sunday in march
+	dstStart += 2 * SECS_PER_HOUR;   //2AM
+	te.Month = 10;
+	dstEnd = makeTime(te);
+	dstStart = nextSunday(dstStart);
+	dstStart = nextSunday(dstStart);
+	dstEnd = nextSunday(dstEnd); //third sunday in october
+	dstEnd += SECS_PER_HOUR;	 //1AM
+
+	return (t >= dstStart && t < dstEnd);
+}
+
+
+
 boolean NTPClient::isSummerTimePeriod (time_t moment) {
     return summertime (year (), month (), day (), hour (), getTimeZone ());
 }
@@ -379,7 +407,8 @@ time_t NTPClient::decodeNtpMessage (char *messageBuffer) {
     time_t timeTemp = secsSince1900 - SEVENTY_YEARS + _timeZone * SECS_PER_HOUR + _minutesOffset * SECS_PER_MIN;
 
     if (_daylight) {
-        if (summertime (year (timeTemp), month (timeTemp), day (timeTemp), hour (timeTemp), _timeZone)) {
+        if( isDST(timeTemp))    {
+        //if (summertime (year (timeTemp), month (timeTemp), day (timeTemp), hour (timeTemp), _timeZone)) {
             timeTemp += SECS_PER_HOUR;
             DEBUGLOG ("Summer Time\n");
         } else {
