@@ -1,0 +1,79 @@
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<strong>Training Activity</strong>
+<hr>
+<form action="/load" method="post">
+	<table border="0" cellspacing="11" cellpadding="3" style="width:350px">
+		<tr>
+			<td align="right">Name:</td>
+			<td>
+				<input type="text" id="intro" name="intro" value="">
+			</td>
+		</tr>
+		<tr>
+			<td align="right"><span class="redbox">Activity 1:</span></td>
+			<td>
+				<input type="text" id="act1" name="act1" value="">
+			</td>
+		</tr>
+		<tr>
+			<td align="right"><span class="greenbox">Activity 2:</span></td>
+			<td>
+				<input type="text" id="act2" name="act2" value="">
+			</td>
+		</tr>
+		<tr>
+			<td align="right"><span class="bluebox">Activity 3:</span></td>
+			<td>
+				<input type="text" id="act3" name="act3" value="">
+			</td>
+		</tr>
+		<tr>
+			<td align="right"><span class="whitebox">Activity 4:</span></td>
+			<td>
+				<input type="text" id="act4" name="act4" value="">
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2" align="center">
+				<input type="submit" style="width:100px" class="btn btn--m btn--blue" value="Load">
+				<a href="/clock" style="width:60px" class="btn btn--m btn--blue">Clock</a>
+			</td>
+		</tr>
+	</table>
+</form>
+<hr>
+
+<script>
+	window.onload = function () {
+		load("style.css", "css", function () {
+			load("microajax.js", "js", function () {
+				setValues("/load");
+				setTimeout(GetState, 3000);
+			});
+		});
+	}
+
+	function load(e, t, n) {
+		if ("js" == t) {
+			var a = document.createElement("script");
+			a.src = e,
+				a.type = "text/javascript",
+				a.async = !1,
+				a.onload = function () {
+					n()
+				},
+				document.getElementsByTagName("head")[0].appendChild(a)
+		} else if ("css" == t) {
+			var a = document.createElement("link");
+			a.href = e,
+				a.rel = "stylesheet",
+				a.type = "text/css",
+				a.async = !1,
+				a.onload = function () {
+					n()
+				},
+				document.getElementsByTagName("head")[0].appendChild(a)
+		}
+	}
+</script>

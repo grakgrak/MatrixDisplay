@@ -1,16 +1,16 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "matrix.h"
-#include "actions.h"
+#include "actionRenderer.h"
 #include "website.h"
+#include "config.h"
 #include "SPI.h"
 #include "WiFi.h"
-#include <NTPClient.h>
-#include <WiFiUdp.h>
+#include "clock.h"
 #include <ArduinoOTA.h> // https://github.com/esp8266/Arduino/blob/master/libraries/ArduinoOTA/ArduinoOTA.h
 
 #define BEEPER_PIN 25
-#define WIFI_CONNECT_TIMEOUT 12000
+#define WIFI_CONNECT_TIMEOUT 20000
 
 //#define SSID "MatrixAP"
 //#define PASSWORD "taketheredpill"
@@ -18,158 +18,8 @@
 #define PASSWORD "Hxv7Kx4raPV7"
 #define HOSTNAME "Matrix64"
 
-//--------------------------------------------------------------------
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 600 * 1000);
-
 bool otaUpdate = false;
-bool blink = false;
-
-#define SECS_SF (188.0 / 60.0)
-//--------------------------------------------------------------------
-void drawSeconds(int secs, int16_t background)
-{
-	//int dx[] = {1, 0, -1, -1, 0, 1, 0}; // seven slots for safety
-	//int dy[] = {0, 1, 0, 0, -1, 0, 0};
-
-	int x = 32;
-	int y = 0;
-	int dx = 1;
-	int dy = 0;
-
-	for (int i = 0; i <= secs * SECS_SF; ++i)
-	{
-		matrix.drawPixel(x, y, background);
-
-		switch (i)
-		{
-		case 31:
-			dx = 0;
-			dy = 1;
-			break;
-		case 62:
-			dx = -1;
-			dy = 0;
-			break;
-		case 125:
-			dx = 0;
-			dy = -1;
-			break;
-		case 156:
-			dx = 1;
-			dy = 0;
-			break;
-		}
-
-		x += dx;
-		y += dy;
-
-		// x += dx[i / 31];
-		// y += dy[i / 31];
-
-		// if (i == 123) // fudge to get the pixels aligned properly
-		// 	matrix.drawPixel(x--, y, background);
-	}
-
-	// render dots every 15 seconds
-	// secs = 15;
-	// x = 32;
-	// y = 0;
-	// for (int i = 0; i < 188; ++i)
-	// {
-	// 	if (i == (int)(secs * SECS_SF))
-	// 	{
-	// 		matrix.drawPixel(x, y, background);
-	// 		secs += 15;
-	// 	}
-
-	// 	x += dx[i / 31];
-	// 	y += dy[i / 31];
-
-	// 	if (i == 123) // fudge to get the pixels aligned properly
-	// 		--x;
-	// }
-}
-
-//--------------------------------------------------------------------
-void clock(int16_t foreground, int16_t background)
-{
-	matrix.startWrite();
-
-	matrix.setTextSize(0);
-	matrix.setFont(&FreeSans12pt7b);
-	matrix.setTextColor(foreground);
-	matrix.black();
-
-	blink = !blink;
-	if (blink)
-	{
-		// draw the colon between digit pairs
-		matrix.drawRect(31, 11, 2, 2, background);
-		matrix.drawRect(31, 18, 2, 2, background);
-	}
-
-	drawSeconds(timeClient.getSeconds(), background);
-
-	String mins(timeClient.getMinutes());
-	String hours(timeClient.getHours());
-
-	if (mins.length() == 1)
-		mins = "0" + mins;
-	if (hours.length() == 1)
-		hours = "0" + hours;
-
-	matrix.setCursor(4, 23);
-	matrix.print(hours);
-
-	matrix.setCursor(34, 23);
-	matrix.print(mins);
-
-	matrix.endWrite();
-	vTaskDelay(1000);
-}
-
-//--------------------------------------------------------------------
-void main_task(void *pvParameter)
-{
-	matrix.setBrightness(2);
-
-	//actions.push( "'Training Display Demo...' b1 c5 b5 c5 b10 c5 b3 'Squad Workout' p10 w3 r3 [3 w5 r5] '2Finished' D2");
-
-	ActionRenderer.Intro = "[2'Training Display...']";
-
-	while (true)
-	{
-		if (otaUpdate == false)
-			if (ActionRenderer.Render() == false)	// if action renderer is idle then
-				clock(Colors::WHITE, Colors::GREEN); //  display the clock
-
-		vTaskDelay(10);
-	}
-}
-
-//--------------------------------------------------------------------
-void webserver_task(void *pvParameter)
-{
-	// Inspect our own high water mark on entering the task.
-	//int stackusage = uxTaskGetStackHighWaterMark(NULL);
-	while (true)
-	{
-		if (otaUpdate == false)
-			loopWebsite();
-
-		vTaskDelay(1);
-	}
-}
-
-//--------------------------------------------------------------------
-/* create a hardware timer */
-hw_timer_t *displayUpdateTimer = NULL;
-void IRAM_ATTR onDisplayUpdate()
-{
-	if (otaUpdate == false)
-		matrix.update();
-}
+bool softAP = false;
 
 //--------------------------------------------------------------------
 bool isWiFiConnected(int timeout)
@@ -180,7 +30,6 @@ bool isWiFiConnected(int timeout)
 	{
 		if ((millis() - lastConnectedTime) > WIFI_CONNECT_TIMEOUT) // allow time to connect to WiFi - if not then restart
 		{
-			//marquee("Wifi Connect Timeout Restart...", RGB(127,127,127));
 			Serial.println("Wifi Connect Timeout Restart...");
 			esp_restart();
 		}
@@ -197,22 +46,55 @@ void initWifi()
 {
 	Serial.println("InitWiFi");
 
-	WiFi.begin(SSID, PASSWORD);
-	WiFi.setHostname(HOSTNAME);
+	//String ssid = SSID;
+	//String passwd = PASSWORD;
+	String ssid = GetCfgString("SSID", "");
+	String passwd = GetCfgString("PASSWORD", "");
+	String hostname = GetCfgString("HostName", HOSTNAME);
 
-	//marquee("Connecting to WiFi...", RGB(127,127,127));
+	if(ssid != "")	// try to connect to the router
+	{
+		WiFi.begin(ssid.c_str(), passwd.c_str());
+		WiFi.setHostname(hostname.c_str());
 
-	while (isWiFiConnected(750) == false)
-		Serial.print(".");
+		unsigned long start = millis();
+		while (WiFi.status() != WL_CONNECTED)
+		{
+			if ((millis() - start) > WIFI_CONNECT_TIMEOUT) // allow time to connect to WiFi - if not then restart
+				break;
+			delay(750);
+			Serial.print(".");
+		}
 
-	String msg = "WiFi Connected - " + WiFi.localIP().toString();
-	//marquee(msg.c_str(), RGB(127,127,127));
+		if(WiFi.status() == WL_CONNECTED)	// if connected then all good
+		{
+			Serial.println("WiFi Connected - " + WiFi.localIP().toString());
+			return;
+		}
+	}
 
-	timeClient.begin();
-	timeClient.update();
-	//Serial.println(WiFi.softAPIP());
-	//WiFi.softAP(SSID, PASSWORD);
-	//Serial.println(WiFi.softAPIP());
+	// ssid is not set or connection attempt timed out
+	softAP = true;
+	Marquee("SoftAP", Colors::BLUE);
+	Serial.println("Starting SoftAP");
+
+	WiFi.softAP("Matrix64", "taketheredpill");
+
+	Serial.println(WiFi.softAPIP());
+}
+
+//--------------------------------------------------------------------
+void main_task(void *pvParameter)
+{
+	ActionRenderer.Intro = "Training Display...      Training Display...";
+	while (true)
+	{
+		if (otaUpdate == false)
+			if (ActionRenderer.Render() == false)	// if action renderer is idle then
+				clock(Colors::WHITE, Colors::GREEN); //  display the clock
+
+		vTaskDelay(10);
+	}
 }
 
 //--------------------------------------------------------------------
@@ -220,21 +102,6 @@ void initTasks()
 {
 	Serial.println("Start main task");
 	xTaskCreate(&main_task, "main_task", 8000, NULL, uxTaskPriorityGet(NULL), NULL);
-
-	//Serial.println("Start webserver task");
-	//xTaskCreate(&webserver_task, "webserver_task", 12000, NULL, uxTaskPriorityGet(NULL), NULL);
-}
-
-//--------------------------------------------------------------------
-void initMatrix()
-{
-	/* 1 tick take 1/(80MHZ/80) = 1us so we set divider 80 and count up */
-	displayUpdateTimer = timerBegin(0, 80, true);
-
-	/* Attach onTimer function to our timer */
-	timerAttachInterrupt(displayUpdateTimer, &onDisplayUpdate, true);
-	timerAlarmWrite(displayUpdateTimer, 5, true);
-	timerAlarmEnable(displayUpdateTimer);
 }
 
 //--------------------------------------------------------------------
@@ -244,8 +111,8 @@ void init_OTA()
 
 	// ArduinoOTA callback functions
 	ArduinoOTA.onStart([]() {
-		matrix.black();
 		otaUpdate = true;
+		matrix.black();
 		Serial.println("OTA starting...");
 	});
 
@@ -291,7 +158,7 @@ void init_OTA()
 	ArduinoOTA.setPort(3232);
 	ArduinoOTA.setHostname(HOSTNAME);
 	//ArduinoOTA.setPassword(HOSTNAME);
-	//ArduinoOTA.setPasswordHash(eecbf409f68cc72c961d8251147ef222);	// MD5 has of Matrix64
+	//ArduinoOTA.setPasswordHash(eecbf409f68cc72c961d8251147ef222);	// MD5 hash of Matrix64
 
 	ArduinoOTA.begin();
 }
@@ -299,30 +166,41 @@ void init_OTA()
 void setup()
 {
 	Serial.begin(115200);
+	delay(10);
+	Serial.setDebugOutput(true);
 	Serial.println("Setup");
 
 	// pinMode(BEEPER_PIN, OUTPUT);	// beeper pin
 	// digitalWrite(BEEPER_PIN, LOW);
 
-	initWifi();
-	initWebsite();
-	initTasks();
+	init_config();
 	initMatrix();
-	init_OTA();
+
+	Marquee("Booting...", Colors::BLUE);
+
+	initWifi();
+	initWebsite(softAP);
+	if(softAP == false)
+	{
+		initClock();
+		initTasks();
+		init_OTA();
+	}
 	Serial.println("Setup Finished");
 }
 
 //--------------------------------------------------------------------
 void loop()
 {
-	if (isWiFiConnected(750))
-	{
-		if (otaUpdate == false)
-			loopWebsite();
+	if(softAP)
+		Marquee("SoftAP", Colors::BLUE);
+	else
+		if (isWiFiConnected(750))
+		{
+			if (updateClock() == false)
+				vTaskDelay(3000);
 
-		if (timeClient.update() == false)
-			vTaskDelay(3000);
-		ArduinoOTA.handle();
-	}
+			ArduinoOTA.handle();
+		}
 	vTaskDelay(10);
 }

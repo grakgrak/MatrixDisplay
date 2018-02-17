@@ -1,0 +1,61 @@
+﻿
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body>
+	<a href="index.htm" class="btn btn--s"><</a>&nbsp;&nbsp;<strong>Activity Control</strong>
+<hr>
+<br><span class="redbox"><strong>Activity 1:</strong></span>
+<a href="act1startpause" style="width:110px" class="btn btn--m btn--blue" >Start / Pause</a>
+<a href="act1reset" style="width:55px" class="btn btn--m btn--blue" >Reset</a>
+<br><span class="greenbox"><strong>Activity 2:</strong></span>
+<a href="act2startpause" style="width:110px" class="btn btn--m btn--blue" >Start / Pause</a>
+<a href="act2reset" style="width:55px" class="btn btn--m btn--blue" >Reset</a>
+<br><span class="bluebox"><strong>Activity 3:</strong></span>
+<a href="act3startpause" style="width:110px" class="btn btn--m btn--blue" >Start / Pause</a>
+<a href="act3reset" style="width:55px" class="btn btn--m btn--blue" >Reset</a>
+<br><span class="whitebox"><strong>Activity 4:</strong></span>
+<a href="act4startpause" style="width:110px" class="btn btn--m btn--blue" >Start / Pause</a>
+<a href="act4reset" style="width:55px" class="btn btn--m btn--blue" >Reset</a>
+<br>
+<br>
+<a href="StartAll" style="width:80px" class="btn btn--m btn--blue" >Start All</a>
+<a href="PauseAll" style="width:80px" class="btn btn--m btn--blue" >Pause All</a>
+<a href="ResetAll" style="width:80px" class="btn btn--m btn--blue" >Reset All</a>
+<hr>
+
+<script>
+	window.onload = function ()
+	{
+		load("style.css","css", function()
+		{
+			load("microajax.js","js", function()
+			{
+				// Do something after load...
+			});
+		});
+	}
+	
+	function load(e,t,n) {
+		if("js"==t) {
+			var a=document.createElement("script");
+			a.src=e,
+			a.type="text/javascript",
+			a.async=!1,
+			a.onload=function() { n() },
+			document.getElementsByTagName("head")[0].appendChild(a)
+		}
+		else if("css"==t) {
+			var a=document.createElement("link");
+			a.href=e,
+			a.rel="stylesheet",
+			a.type="text/css",
+			a.async=!1,
+			a.onload=function(){ n() },
+			document.getElementsByTagName("head")[0].appendChild(a)
+		}
+	}
+
+</script>
+
+</body>

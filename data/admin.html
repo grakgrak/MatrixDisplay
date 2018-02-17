@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<strong>Administration</strong>
+<hr>
+<form action="/config" method="post">
+	<table border="0" cellspacing="11" cellpadding="3" style="width:350px">
+		<tr>
+			<td align="right">SSID:</td>
+			<td>
+				<input type="text" id="ssid" name="ssid" value="">
+			</td>
+		</tr>
+		<tr>
+			<td align="right">Password:</td>
+			<td>
+				<input type="password" id="password" name="password" value="">
+			</td>
+		</tr>
+		<tr>
+			<td align="right">Brightness:</td>
+			<td>
+					<select id="bright" name="bright">
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+						<option value="4">4</option>
+						<option value="5">5</option>
+						<option value="6">6</option>
+						<option value="7">7</option>
+						<option value="8">8</option>
+						<option value="9">9</option>
+						<option value="10">10</option>
+					</select>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2" align="center">
+				<input type="submit" style="width:100px" class="btn btn--m btn--blue" value="Save">
+			</td>
+		</tr>
+	</table>
+</form>
+<hr>
+<a href="/restart" style="width:65px" class="btn btn--m btn--blue">Restart</a>
+<hr>
+
+
+<script>
+	window.onload = function () {
+		load("style.css", "css", function () {
+			load("microajax.js", "js", function () {
+				setValues("/config");
+				setTimeout(GetState, 3000);
+			});
+		});
+	}
+
+	function load(e, t, n) {
+		if ("js" == t) {
+			var a = document.createElement("script");
+			a.src = e,
+				a.type = "text/javascript",
+				a.async = !1,
+				a.onload = function () {
+					n()
+				},
+				document.getElementsByTagName("head")[0].appendChild(a)
+		} else if ("css" == t) {
+			var a = document.createElement("link");
+			a.href = e,
+				a.rel = "stylesheet",
+				a.type = "text/css",
+				a.async = !1,
+				a.onload = function () {
+					n()
+				},
+				document.getElementsByTagName("head")[0].appendChild(a)
+		}
+	}
+</script>
