@@ -9,7 +9,7 @@
 #include "clock.h"
 #include <ArduinoOTA.h> // https://github.com/esp8266/Arduino/blob/master/libraries/ArduinoOTA/ArduinoOTA.h
 
-#define BEEPER_PIN 25
+#define BEEPER_PIN 33
 #define WIFI_CONNECT_TIMEOUT 20000
 
 //#define SSID "MatrixAP"
@@ -69,24 +69,26 @@ void initWifi()
 		if(WiFi.status() == WL_CONNECTED)	// if connected then all good
 		{
 			Serial.println("WiFi Connected - " + WiFi.localIP().toString());
+
+			Marquee(WiFi.localIP().toString().c_str(), Colors::BLUE);
+
 			return;
 		}
 	}
 
 	// ssid is not set or connection attempt timed out
 	softAP = true;
-	Marquee("SoftAP", Colors::BLUE);
 	Serial.println("Starting SoftAP");
 
 	WiFi.softAP("Matrix64", "taketheredpill");
 
-	Serial.println(WiFi.softAPIP());
+	Serial.println(WiFi.softAPIP().toString());
 }
 
 //--------------------------------------------------------------------
 void main_task(void *pvParameter)
 {
-	ActionRenderer.Intro = "Training Display...      Training Display...";
+	ActionRenderer.Intro = "Training Display...";
 	while (true)
 	{
 		if (otaUpdate == false)
@@ -101,7 +103,7 @@ void main_task(void *pvParameter)
 void initTasks()
 {
 	Serial.println("Start main task");
-	xTaskCreate(&main_task, "main_task", 8000, NULL, uxTaskPriorityGet(NULL), NULL);
+	xTaskCreate(&main_task, "main_task", 10000, NULL, uxTaskPriorityGet(NULL), NULL);
 }
 
 //--------------------------------------------------------------------
@@ -162,6 +164,14 @@ void init_OTA()
 
 	ArduinoOTA.begin();
 }
+
+//--------------------------------------------------------------------
+void Beep(int ms)
+{
+	digitalWrite(BEEPER_PIN, HIGH);
+	delay(ms);
+	digitalWrite(BEEPER_PIN, LOW);
+}
 //--------------------------------------------------------------------
 void setup()
 {
@@ -170,8 +180,8 @@ void setup()
 	Serial.setDebugOutput(true);
 	Serial.println("Setup");
 
-	// pinMode(BEEPER_PIN, OUTPUT);	// beeper pin
-	// digitalWrite(BEEPER_PIN, LOW);
+	pinMode(BEEPER_PIN, OUTPUT);	// beeper pin
+	digitalWrite(BEEPER_PIN, LOW);
 
 	init_config();
 	initMatrix();
@@ -193,7 +203,14 @@ void setup()
 void loop()
 {
 	if(softAP)
+	{
 		Marquee("SoftAP", Colors::BLUE);
+		Marquee(WiFi.softAPIP().toString().c_str(), Colors::BLUE);
+
+		// reboot very 5 mins in softap mode
+		if( millis() > 60 * 1000 * 5)
+			esp_restart();
+	}
 	else
 		if (isWiFiConnected(750))
 		{
@@ -202,5 +219,5 @@ void loop()
 
 			ArduinoOTA.handle();
 		}
-	vTaskDelay(10);
+	vTaskDelay(100);
 }

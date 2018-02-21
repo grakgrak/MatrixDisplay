@@ -1,79 +1,118 @@
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js"></script>
+<link rel="stylesheet" href="picnic.css">
+<link rel="stylesheet" href="style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<strong>Training Activity</strong>
-<hr>
-<form action="/load" method="post">
-	<table border="0" cellspacing="11" cellpadding="3" style="width:350px">
-		<tr>
-			<td align="right">Name:</td>
-			<td>
-				<input type="text" id="intro" name="intro" value="">
-			</td>
-		</tr>
-		<tr>
-			<td align="right"><span class="redbox">Activity 1:</span></td>
-			<td>
-				<input type="text" id="act1" name="act1" value="">
-			</td>
-		</tr>
-		<tr>
-			<td align="right"><span class="greenbox">Activity 2:</span></td>
-			<td>
-				<input type="text" id="act2" name="act2" value="">
-			</td>
-		</tr>
-		<tr>
-			<td align="right"><span class="bluebox">Activity 3:</span></td>
-			<td>
-				<input type="text" id="act3" name="act3" value="">
-			</td>
-		</tr>
-		<tr>
-			<td align="right"><span class="whitebox">Activity 4:</span></td>
-			<td>
-				<input type="text" id="act4" name="act4" value="">
-			</td>
-		</tr>
-		<tr>
-			<td colspan="2" align="center">
-				<input type="submit" style="width:100px" class="btn btn--m btn--blue" value="Load">
-				<a href="/clock" style="width:60px" class="btn btn--m btn--blue">Clock</a>
-			</td>
-		</tr>
+
+<div id="app">
+	<table style="white-space: nowrap;">
+		<thead>
+			<th>Name</th>
+			<th></th>
+			<th></th>
+		</thead>
+		<tbody>
+			<tr v-for="(title,index) in titles">
+				<td>{{ title }}</td>
+				<td>
+					<button class="button" v-on:click="edit(index)">Select</button>
+				</td>
+				<td>
+					<confirm @confirm="del(index)" :text="'Delete schedule: ' + title + '?'">
+						<button class="button">Delete</button>
+					</confirm>
+				</td>
+			</tr>
+		</tbody>
 	</table>
-</form>
-<hr>
+</div>
+
+
 
 <script>
-	window.onload = function () {
-		load("style.css", "css", function () {
-			load("microajax.js", "js", function () {
-				setValues("/load");
-				setTimeout(GetState, 3000);
-			});
-		});
-	}
+	Vue.component('confirm', {
+		props: ['text'],
+		functional: true,
+		render(h, context) {
+			// check slots
+			if (context.children.length !== 1) {
+				console.error('must have exactly one child element!')
+				return null
+			}
+			const el = context.children[0]
 
-	function load(e, t, n) {
-		if ("js" == t) {
-			var a = document.createElement("script");
-			a.src = e,
-				a.type = "text/javascript",
-				a.async = !1,
-				a.onload = function () {
-					n()
-				},
-				document.getElementsByTagName("head")[0].appendChild(a)
-		} else if ("css" == t) {
-			var a = document.createElement("link");
-			a.href = e,
-				a.rel = "stylesheet",
-				a.type = "text/css",
-				a.async = !1,
-				a.onload = function () {
-					n()
-				},
-				document.getElementsByTagName("head")[0].appendChild(a)
+			// add listener to slot vnode if specified
+			const {
+				confirm,
+				cancel
+			} = context.listeners
+			if (confirm) {
+				// create a listener callback to apply to the button
+				const text = context.props.text || 'Really do this?'
+				const wrappedListener = () => {
+					const res = window.confirm(text)
+					if (res) {
+						confirm()
+					} else if (cancel) {
+						cancel()
+					}
+				}
+
+				const data = (el.data || {})
+				const on = (data.on || (data.on = {}))
+				on.click = wrappedListener
+				el.data = data
+			}
+
+			return el
 		}
-	}
+	})
+
+
+	var app = new Vue({
+		el: '#app',
+		data: {
+			titles: []
+		},
+		computed: {
+			isValid: function (g) {
+				return g.act1 != ''
+			},
+			activeItems: function () {
+				return this.greets
+					.filter(function (itm) {
+						return itm.act1 != '';
+					})
+					.sort(function (a, b) {
+						return a.name.localeCompare(b.name);
+					});
+			}
+		},
+		created: function () {
+			fetch( /*"http://192.168.1.244/" +*/ "clock").then(resp => {});
+			this.loadTitles("json/list");
+		},
+		methods: {
+			del: function (idx) {
+				fetch( /*"http://192.168.1.244/" +*/ "json/delete?name=" + this.titles[idx]).then(resp => {});
+				this.loadTitles("json/list");
+			},
+			edit: function (idx) {
+				fetch( /*"http://192.168.1.244/" +*/ "json/load?name=" + this.titles[idx]).then(resp => {});
+				window.location = "edit.html";
+			},
+			loadTitles: function (url) {
+				fetch(/*"http://192.168.1.244/" +*/ url)
+					.then(function (resp) {
+						return resp.json();
+					})
+					.then(function (j) {
+						app.titles = j;
+						app.titles.sort();
+					})
+					.catch(function (error) {
+						alert(error);
+					})
+			}
+		}
+	});
 </script>

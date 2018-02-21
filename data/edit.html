@@ -1,0 +1,90 @@
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js"></script>
+<link rel="stylesheet" href="picnic.css">
+<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<div id="vm">
+	<a href="index.htm" class="button"><</a>&nbsp;&nbsp;
+	<strong>Training Activity</strong>
+	<hr>
+		<table border="0" cellspacing="11" cellpadding="3" style="width:350px; white-space: nowrap;">
+			<tr>
+				<td>Name:</td>
+				<td><input type="text" v-model="intro"></td>
+			</tr>
+			<tr>
+				<td><span class="redbox">Activity 1:</span></td>
+				<td><input type="text" v-model="act1"></td>
+			</tr>
+			<tr>
+				<td><span class="greenbox">Activity 2:</span></td>
+				<td><input type="text" v-model="act2"></td>
+			</tr>
+			<tr>
+				<td><span class="bluebox">Activity 3:</span></td>
+				<td><input type="text" v-model="act3"></td>
+			</tr>
+			<tr>
+				<td><span class="whitebox">Activity 4:</span></td>
+				<td><input type="text" v-model="act4"></td>
+			</tr>
+			<tr>
+				<td colspan="2" align="center">
+					<button class="button" v-on:click="load">Load</button>
+					<a :href="getURL('clock')" class="button">Clock</a>
+				</td>
+			</tr>
+		</table>
+	<hr>
+</div>
+
+<script>
+	var schedule = {
+			intro: "",
+			act1: "",
+			act2: "",
+			act3: "",
+			act4: ""
+		};
+
+	var vm = new Vue({
+		el: '#vm',
+		data: schedule,
+		created: function () {
+			this.loadSchedule("json/load");
+		},
+		methods:{
+			getURL: function(url) { return /*'http://192.168.1.244/' + */url; },
+
+			loadSchedule: function (url) {
+				fetch(/*'http://192.168.1.244/' +*/ url)
+					.then(function (resp) {
+						return resp.json();
+					})
+					.then(function (j) {
+						schedule.intro = j.intro.trim();
+						schedule.act1 = j.act1.trim();
+						schedule.act2 = j.act2.trim();
+						schedule.act3 = j.act3.trim();
+						schedule.act4 = j.act4.trim();
+					})
+					.catch(function (error) {
+						console.log(error);
+					})
+			},
+			load: function () {
+				var formData = new FormData();
+				formData.append("schedule", JSON.stringify(this.$data));
+
+				fetch(/*'http://192.168.1.244/' +*/ "json/load", 
+				{
+					method: "POST",
+					dataType: "json",
+					body: formData
+				})
+				.then(function (resp) { window.location = "control.html" })
+				.catch(function (error) {console.log(error); })
+			},
+		}
+	});
+</script>

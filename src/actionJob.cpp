@@ -1,5 +1,7 @@
 #include "actionJob.h"
 
+extern void Beep(int ms);
+
 //--------------------------------------------------------------------
 const char *getValue(const char *code, int &val)
 {
@@ -11,7 +13,7 @@ const char *getValue(const char *code, int &val)
 }
 
 //--------------------------------------------------------------------
-void TActionJob::Set(const String &code, int16_t colour)
+void TActionJob::Set(const char *code, int16_t colour)
 {
 	cycle = 0;
 	limit = 0;
@@ -20,7 +22,7 @@ void TActionJob::Set(const String &code, int16_t colour)
 	_start = NULL;
 
 	_colour = colour;
-	_code = code;
+	_code = (code == NULL) ? "" : code;
 	_ptr = _code.c_str();
 	_state = (*_ptr == '\0') ? SLEEPING : READY;
 
@@ -66,7 +68,7 @@ void TActionJob::Pause()
 //--------------------------------------------------------------------
 void TActionJob::Reset()
 {
-	Set(_code, _colour);
+	Set(_code.c_str(), _colour);
 }
 //--------------------------------------------------------------------
 bool TActionJob::NextAction()
@@ -85,12 +87,14 @@ bool TActionJob::NextAction()
 			_ptr = getValue(++_ptr, seconds);
 			return true;
 		case '[': // repeat
+		case '(': // repeat
 			_ptr = getValue(++_ptr, limit);
 			cycle = 1;
 			_start = _ptr;
 			break;
 		case ']': // end repeat
-			if ((_start != NULL) && (++cycle < limit))
+		case ')': // end repeat
+			if ((_start != NULL) && (++cycle <= limit))
 			{
 				_ptr = _start; // reset to start of loop
 				break;
@@ -108,7 +112,7 @@ bool TActionJob::NextAction()
 	}
 }
 //--------------------------------------------------------------------
-bool TActionJob::Update()
+bool TActionJob::Update(int beepSeconds)
 {
 	if (State() == SLEEPING) // nothing to do if sleeping
 		return false;
@@ -121,8 +125,13 @@ bool TActionJob::Update()
 	if (State() == READY || State() == PAUSE)
 		return true;
 
+	--seconds;
+
+	if(seconds >= 0 && seconds < beepSeconds)
+		Beep((seconds == 0) ? 200 : 50);
+
 	// still working on the current action
-	if (--seconds >= 0)
+	if ( seconds >= 0 )
 		return true;
 
 	// get the next action from the command string

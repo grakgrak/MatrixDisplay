@@ -14,3 +14,10 @@ void SetTraining(const char *key, const String &val);
 String GetTraining(const char *key);
 void DeleteTraining(const char *key);
 
+
+String ListReadAll();
+String ListReadKey( const char *key);
+void ListIoU( const char *key, const String &data);
+void ListDelete( const char *key);
+
+

@@ -91,10 +91,10 @@ void clock(int16_t foreground, int16_t background)
 	//drawSeconds(timeClient.getSeconds() + 1, background);
 	drawSeconds(second() + 1, background);
 
+	// draw the colon between digit pairs
 	blink = !blink;
 	if (blink)
 	{
-		// draw the colon between digit pairs
 		matrix.drawRect(31, 11, 2, 2, background);
 		matrix.drawRect(31, 18, 2, 2, background);
 	}

@@ -5,11 +5,16 @@
 #include <ESPAsyncWebServer.h>
 #include "actionRenderer.h"
 #include "website/index.htm.gz.h"
-#include "website/control.html.gz.h"
 #include "website/admin.html.gz.h"
+#include "website/edit.html.gz.h"
+#include "website/control.html.gz.h"
+#include "website/picnic.css.gz.h"
 #include "website/style.css.gz.h"
 #include "website/microajax.js.gz.h"
 #include "website/favicon.ico.gz.h"
+
+#include "website/vue.min.js.gz.h"
+#include "website/picnic.min.css.gz.h"
 
 #include "config.h"
 
@@ -21,9 +26,9 @@ const char *http_username = "matrix";
 const char *http_password = "redpill";
 
 const char Page_Restart[] PROGMEM = R"=====(
-<meta http-equiv="refresh" content="10; URL=/">
-Please Wait....Configuring and Restarting.
-)=====";
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="refresh" content="15; URL=/">
+Please Wait....Configuring and Restarting.)=====";
 
 //--------------------------------------------------------------------
 void sendGzipResponse(AsyncWebServerRequest *request, const String &mimeType, const uint8_t *content, size_t len)
@@ -33,21 +38,7 @@ void sendGzipResponse(AsyncWebServerRequest *request, const String &mimeType, co
 	response->addHeader("Last-Modified", buildTime);
 	request->send(response);
 }
-//--------------------------------------------------------------------
-void handleLoadPost(AsyncWebServerRequest *request)
-{
-	if (request->hasParam("intro", true))
-	{
-		ActionRenderer.Set(
-			request->getParam("intro", true)->value(),
-			request->getParam("act1", true)->value(),
-			request->getParam("act2", true)->value(),
-			request->getParam("act3", true)->value(),
-			request->getParam("act4", true)->value());
-	}
-	// move to the control page
-	sendGzipResponse(request, "text/html", control_html_gz, control_html_gz_len);
-}
+
 //--------------------------------------------------------------------
 void handleConfigPost(AsyncWebServerRequest *request)
 {
@@ -79,12 +70,31 @@ void initWebsite(bool softAP)
 		MDNS.addService("http", "tcp", 80);
 	}
 
-	// Data Load / Save
-	server.on("/load", HTTP_POST, handleLoadPost);
-	server.on("/load", HTTP_GET, [](AsyncWebServerRequest *request) {
-		request->send(200, "text/plain", ActionRenderer.Get());
+
+	// Json Data Load / Save
+	server.on("/json/list", HTTP_GET, [](AsyncWebServerRequest *request) {
+		request->send(200, "text/json", ListReadAll());
 	});
 
+	server.on("/json/load", HTTP_POST, [](AsyncWebServerRequest *request) {
+		ActionRenderer.SetJson(request->getParam("schedule", true)->value());
+		request->send(200, "text/json", "{status:\"ok\"}");
+	});
+
+	server.on("/json/load", HTTP_GET, [](AsyncWebServerRequest *request) {
+		if(request->hasParam("name"))
+			ActionRenderer.Select(request->getParam("name")->value());
+		request->send(200, "text/json", ActionRenderer.GetJson());
+	});
+	
+	server.on("/json/delete", HTTP_GET, [](AsyncWebServerRequest *request) {
+		if(request->hasParam("name"))
+			ListDelete(request->getParam("name")->value().c_str());
+		request->send(204);
+	});
+
+
+	// Data Load / Save
 	server.on("/config", HTTP_POST, handleConfigPost);
 	server.on("/config", HTTP_GET, [](AsyncWebServerRequest *request) {
 		String values =
@@ -94,6 +104,14 @@ void initWebsite(bool softAP)
 
 		request->send(200, "text/plain", values);
 	});
+
+
+	// server.on("/vue.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+	// 	sendGzipResponse(request, "text/html", vue_min_js_gz, vue_min_js_gz_len);
+	// });
+	
+
+
 
 	// web pages
 	if(softAP)
@@ -114,6 +132,15 @@ void initWebsite(bool softAP)
 	server.on("/admin.html", HTTP_GET, [](AsyncWebServerRequest *request) {
 		sendGzipResponse(request, "text/html", admin_html_gz, admin_html_gz_len);
 	});
+	server.on("/edit.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+		sendGzipResponse(request, "text/html", edit_html_gz, edit_html_gz_len);
+	});
+	server.on("/control.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+		sendGzipResponse(request, "text/html", control_html_gz, control_html_gz_len);
+	});
+	server.on("/picnic.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+		sendGzipResponse(request, "text/css", picnic_css_gz, picnic_css_gz_len);
+	});
 	server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
 		sendGzipResponse(request, "text/css", style_css_gz, style_css_gz_len);
 	});
@@ -133,59 +160,61 @@ void initWebsite(bool softAP)
 	});
 
 	server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request) {
-		ActionRenderer.Set("", "", "", "", "");
+		ActionRenderer.SetJson("{}");
 		request->send(204);
 	});
 
-	server.on("/StartAll", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/start-all", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.StartAll();
 		request->send(204); // No content
 	});
-	server.on("/PauseAll", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/pause-all", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.PauseAll();
 		request->send(204); // No content
 	});
-	server.on("/ResetAll", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/reset-all", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.ResetAll();
 		request->send(204); // No content
 	});
 
-	server.on("/act1startpause", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/startpause-act1", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.StartPause(1);
 		request->send(204); // No content
 	});
-	server.on("/act2startpause", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/startpause-act2", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.StartPause(2);
 		request->send(204); // No content
 	});
-	server.on("/act3startpause", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/startpause-act3", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.StartPause(3);
 		request->send(204); // No content
 	});
-	server.on("/act4startpause", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/startpause-act4", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.StartPause(4);
 		request->send(204); // No content
 	});
 
-	server.on("/act1reset", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/reset-act1", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.Reset(1);
 		request->send(204); // No content
 	});
-	server.on("/act2reset", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/reset-act2", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.Reset(2);
 		request->send(204); // No content
 	});
-	server.on("/act3reset", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/reset-act3", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.Reset(3);
 		request->send(204); // No content
 	});
-	server.on("/act4reset", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/reset-act4", HTTP_GET, [](AsyncWebServerRequest *request) {
 		ActionRenderer.Reset(4);
 		request->send(204); // No content
 	});
 
 	server.on("/heap", HTTP_GET, [](AsyncWebServerRequest *request) {
-		request->send(200, "text/plain", String(ESP.getFreeHeap()));
+		String text = "High Stack: " + String(uxTaskGetStackHighWaterMark(NULL))
+			+ "\nHeap: " + String(ESP.getFreeHeap());
+		request->send(200, "text/plain", text);
 	});
 
 	server.onNotFound([](AsyncWebServerRequest *request) {
@@ -265,5 +294,6 @@ void initWebsite(bool softAP)
 	// 		Serial.printf("BodyEnd: %u\n", total);
 	// });
 
+	DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
 	server.begin();
 }

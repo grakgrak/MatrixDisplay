@@ -1,61 +1,85 @@
-﻿
-<head>
+﻿<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js"></script>
+<link rel="stylesheet" href="picnic.css">
+<link rel="stylesheet" href="style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-</head>
-<body>
-	<a href="index.htm" class="btn btn--s"><</a>&nbsp;&nbsp;<strong>Activity Control</strong>
-<hr>
-<br><span class="redbox"><strong>Activity 1:</strong></span>
-<a href="act1startpause" style="width:110px" class="btn btn--m btn--blue" >Start / Pause</a>
-<a href="act1reset" style="width:55px" class="btn btn--m btn--blue" >Reset</a>
-<br><span class="greenbox"><strong>Activity 2:</strong></span>
-<a href="act2startpause" style="width:110px" class="btn btn--m btn--blue" >Start / Pause</a>
-<a href="act2reset" style="width:55px" class="btn btn--m btn--blue" >Reset</a>
-<br><span class="bluebox"><strong>Activity 3:</strong></span>
-<a href="act3startpause" style="width:110px" class="btn btn--m btn--blue" >Start / Pause</a>
-<a href="act3reset" style="width:55px" class="btn btn--m btn--blue" >Reset</a>
-<br><span class="whitebox"><strong>Activity 4:</strong></span>
-<a href="act4startpause" style="width:110px" class="btn btn--m btn--blue" >Start / Pause</a>
-<a href="act4reset" style="width:55px" class="btn btn--m btn--blue" >Reset</a>
-<br>
-<br>
-<a href="StartAll" style="width:80px" class="btn btn--m btn--blue" >Start All</a>
-<a href="PauseAll" style="width:80px" class="btn btn--m btn--blue" >Pause All</a>
-<a href="ResetAll" style="width:80px" class="btn btn--m btn--blue" >Reset All</a>
-<hr>
+
+<div id="ctrlvm">
+	<a href="edit.html" class="button"><</a>&nbsp;&nbsp;
+			<strong>Activity Control</strong>
+	<hr>
+	<my-component id="act1" caption="Activity 1:" boxclass="redbox"></my-component>
+	<my-component id="act2" caption="Activity 2:" boxclass="greenbox"></my-component>
+	<my-component id="act3" caption="Activity 3:" boxclass="bluebox"></my-component>
+	<my-component id="act4" caption="Activity 4:" boxclass="whitebox"></my-component>
+
+	<br>
+	<a :href="getURL('start-all')" class="button">Start All</a>
+	<a :href="getURL('pause-all')" class="button">Pause All</a>
+	<a :href="getURL('reset-all')" class="button">Reset All</a>
+	<hr>
+</div>
 
 <script>
-	window.onload = function ()
-	{
-		load("style.css","css", function()
-		{
-			load("microajax.js","js", function()
-			{
-				// Do something after load...
-			});
-		});
-	}
-	
-	function load(e,t,n) {
-		if("js"==t) {
-			var a=document.createElement("script");
-			a.src=e,
-			a.type="text/javascript",
-			a.async=!1,
-			a.onload=function() { n() },
-			document.getElementsByTagName("head")[0].appendChild(a)
+	// define
+	var MyComponent = Vue.extend({
+		props: ['caption', 'boxclass', 'id'],
+		template: `<div v-if="showme()">
+		  <span :class="boxclass"><strong>{{ caption }}</strong></span>
+		  <button class="button" v-on:click="start">Start / Pause</button>
+		  <button class="button" v-on:click="reset">Reset</button>
+		  <br>
+		  </div>`,
+		methods: {
+			showme: function () {
+				return schedule[this.id] != "";
+			},
+			start: function () {
+				fetch(/*'http://192.168.1.244/' +*/ "startpause-"+this.id).then(resp => {});
+			},
+			reset: function () {
+				fetch(/*'http://192.168.1.244/' +*/ "reset-"+this.id).then(resp => {});
+			}
 		}
-		else if("css"==t) {
-			var a=document.createElement("link");
-			a.href=e,
-			a.rel="stylesheet",
-			a.type="text/css",
-			a.async=!1,
-			a.onload=function(){ n() },
-			document.getElementsByTagName("head")[0].appendChild(a)
-		}
-	}
 
+	})
+
+	// register
+	Vue.component('my-component', MyComponent)
+
+	var schedule = {
+			intro: "",
+			act1: "",
+			act2: "",
+			act3: "",
+			act4: ""
+		};
+
+	var ctrlvm = new Vue({
+		el: '#ctrlvm',
+		data: schedule,
+		created: function () {
+			this.loadSchedule("json/load");
+		},
+		methods: {
+			getURL: function(url) { return /*'http://192.168.1.244/' +*/ url; },
+
+			loadSchedule: function (url) {
+				fetch(/*'http://192.168.1.244/' +*/ url)
+					.then(function (resp) {
+						return resp.json();
+					})
+					.then(function (j) {
+						console.log(j);
+						schedule.intro = j.intro.trim();
+						schedule.act1 = j.act1.trim();
+						schedule.act2 = j.act2.trim();
+						schedule.act3 = j.act3.trim();
+						schedule.act4 = j.act4.trim();
+					})
+					.catch(function (error) {
+						console.log(error);
+					})
+			},
+		}
+	});
 </script>
-
-</body>

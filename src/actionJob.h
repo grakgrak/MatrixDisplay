@@ -14,7 +14,7 @@ class TActionJob
 	};
 
   public:
-	void Set(const String &code, int16_t colour);
+	void Set(const char *code, int16_t colour);
 	void SetState(TJobState state);
 
 	int action; // Prep, Work, Rest
@@ -22,7 +22,7 @@ class TActionJob
 	int cycle;
 	int limit;
 
-	bool Update();
+	bool Update(int beepSeconds);
 	
 	void ToggleRun();
 	void Run();
@@ -42,7 +42,7 @@ class TActionJob
 	inline String Code()	{ return _code;}
   private:
 	TJobState _state = SLEEPING; // Pause, run, done
-	String _code;
+	String _code = "";
 	const char *_ptr;
 	const char *_start;
 	unsigned long _lastTick;

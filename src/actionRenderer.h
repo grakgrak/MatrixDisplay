@@ -7,20 +7,22 @@ class TActionRenderer
   public:
 	bool Render(); // paints the action jobs onto the display
 
-	String Get()	{return _settings;}
-	void Set(const String &intro, const String &act1, const String &act2, const String &act3, const String &act4);
-	
+	String GetJson();
+	void SetJson(const String &json);
+	void Select(const String &key);
+
 	void StartAll();
 	void PauseAll();
 	void ResetAll();
 	void StartPause(int job);
 	void Reset(int job);
 
-	String Intro; // intro command string
-	String Outro; // outro command string
+	const char *Intro = NULL; // intro message string
+	const char *Outro = NULL; // outro message string
 
   private:
-	String _settings;
+	String _intro = ""; // intro command string
+	String _outro = ""; // outro command string
 	TActionJob jobs[4];
 
 	int activeJobCount();

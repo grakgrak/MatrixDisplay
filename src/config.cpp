@@ -28,6 +28,8 @@ struct nvs_page // For nvs entries
 // Common data
 nvs_page buf;
 nvs_handle config_nvs = 0;
+nvs_handle list_nvs = 0;
+
 void dumpNVS();
 
 //--------------------------------------------------------------------
@@ -52,7 +54,7 @@ String GetNvsString(nvs_handle handle, const char *name, const char *defaultVal)
 //--------------------------------------------------------------------
 String GetCfgString(const char *key, const char *defaultVal)
 {
-	return (GetNvsString(config_nvs, key, defaultVal));
+	return GetNvsString(config_nvs, key, defaultVal);
 }
 
 //--------------------------------------------------------------------
@@ -91,8 +93,12 @@ void init_config()
 		Serial.println("Failed to open the CONFIG nvs.");
 		return;
 	}
-
-	dumpNVS();
+	if (nvs_open("list", NVS_READWRITE, &list_nvs) != ESP_OK)
+	{
+		list_nvs = 0;
+		Serial.println("Failed to open the LIST nvs.");
+		return;
+	}
 }
 
 // Find the namespace ID for the namespace passed as parameter.
@@ -136,7 +142,7 @@ uint8_t FindNsID(const esp_partition_t *nvs, const char *ns)
 }
 
 //--------------------------------------------------------------------
-void dumpNVS()
+void dumpNVS(String &res)
 {
 	// Get NVS partition iterator
 	esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "nvs");
@@ -146,7 +152,7 @@ void dumpNVS()
 	const esp_partition_t *nvs = esp_partition_get(pi);		// Get partition struct
 	esp_partition_iterator_release(pi); // Release the iterator
 
-	uint8_t namespace_ID = FindNsID(nvs, "config"); // Find ID of our namespace in NVS
+	uint8_t namespace_ID = FindNsID(nvs, "list"); // Find ID of our namespace in NVS
 	Serial.printf("Namespace ID is %d\n", namespace_ID);
 
 	uint32_t offset = 0;  // Offset in nvs partition
@@ -166,7 +172,15 @@ void dumpNVS()
 			if (bm == 2)
 			{
 				if ((namespace_ID == 0xFF) || (buf.Entry[i].Ns == namespace_ID))
-					Serial.printf("Key %03d: %s\n", i, buf.Entry[i].Key); // Print the key
+				{
+					String key(buf.Entry[i].Key);
+					if( key != "")
+					{
+						if( res != "")
+							res += ",";
+						res += "\"" + key + "\"";
+					}
+				}
 
 				i += buf.Entry[i].Span; // Next entry
 			}
@@ -175,4 +189,34 @@ void dumpNVS()
 		}
 		offset += sizeof(nvs_page); // Prepare to read next page in nvs
 	}
+}
+//--------------------------------------------------------------------
+String ListReadAll()
+{
+	String res = "";
+	dumpNVS(res);
+	return "[" + res + "]";
+}
+//--------------------------------------------------------------------
+String ListReadKey( const char *key)
+{
+	return GetNvsString(list_nvs, key, "");
+}
+//--------------------------------------------------------------------
+void ListIoU( const char *key, const String &data)
+{
+	String k(key);
+	k.trim();
+
+	// check that the value has changed
+	if( k != "")
+	{
+		if (GetNvsString(list_nvs, k.c_str(), "") != data)
+			nvs_set_str(list_nvs, k.c_str(), data.c_str());
+	}
+}
+//--------------------------------------------------------------------
+void ListDelete( const char *key)
+{
+	nvs_erase_key(list_nvs, key);
 }

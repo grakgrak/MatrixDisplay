@@ -1,5 +1,7 @@
 #include "actionRenderer.h"
 #include "matrix.h"
+#include "config.h"
+#include <ArduinoJson.h>
 
 TActionRenderer ActionRenderer;
 
@@ -112,16 +114,6 @@ void drawPWR(int count, int pos, const TActionJob &job)
 	matrix.setCursor(x + 3, 3);
 	matrix.print(text);
 
-	if (job.cycle > 0) // display cycle of limit
-	{
-		matrix.setCursor(x + 4, 20);
-		matrix.print(job.cycle);
-		matrix.setCursor(matrix.getCursorX() + 1, 20);
-		matrix.print("of");
-		matrix.setCursor(matrix.getCursorX() + 1, 20);
-		matrix.print(job.limit);
-	}
-
 	// display seconds
 	if (count > 2)
 	{
@@ -130,8 +122,18 @@ void drawPWR(int count, int pos, const TActionJob &job)
 	}
 	else
 	{
+		if (job.cycle > 0) // display cycle of limit
+		{
+			matrix.setCursor(x + 3, 23);
+			matrix.print(job.cycle);
+			matrix.setCursor(matrix.getCursorX() + 1, 23);
+			matrix.print("of");
+			matrix.setCursor(matrix.getCursorX() + 1, 23);
+			matrix.print(job.limit);
+		}
+
 		matrix.setTextSize(2);
-		matrix.setCursor((job.seconds < 10) ? mid - 5 : mid - 11, 11);
+		matrix.setCursor((job.seconds < 10) ? mid - 5 : mid - 11, job.cycle > 0 ? 8 : 11);
 	}
 
 	matrix.print(job.seconds);
@@ -140,16 +142,50 @@ void drawPWR(int count, int pos, const TActionJob &job)
 }
 
 //--------------------------------------------------------------------
-void TActionRenderer::Set(const String &intro, const String &act1, const String &act2, const String &act3, const String &act4)
+void TActionRenderer::Select(const String &key)
 {
-	_settings = "intro|"+intro+"|input\n" + "act1|"+act1+"|input\n" + "act2|"+act2+"|input\n" + "act3|"+act3+"|input\n" + "act4|"+act4+"|input\n";
-	Serial.println("Setting Jobs: " + _settings);
+	SetJson(ListReadKey(key.c_str()));
+}
+//--------------------------------------------------------------------
+String TActionRenderer::GetJson()
+{
+	StaticJsonBuffer<512> jsonBuffer;
+	JsonObject &j = jsonBuffer.createObject();
 
-	Intro = intro;
-	jobs[0].Set(act1, Colors::RED);
-	jobs[1].Set(act2, Colors::GREEN);
-	jobs[2].Set(act3, Colors::BLUE);
-	jobs[3].Set(act4, Colors::WHITE);
+	j["intro"] = _intro;
+	j["act1"] = jobs[0].Code();
+	j["act2"] = jobs[1].Code();
+	j["act3"] = jobs[2].Code();
+	j["act4"] = jobs[3].Code();
+
+	String res;
+	j.printTo(res);
+Serial.println("GetJson: " + res);
+	return res;
+}
+//--------------------------------------------------------------------
+void TActionRenderer::SetJson(const String &json)
+{
+Serial.println("SetJson: " + json);
+
+	StaticJsonBuffer<512> jsonBuffer;
+	JsonObject &j = jsonBuffer.parseObject(json);
+
+	if(j.success())
+	{
+		_intro = j.get<String>("intro");
+		Intro = _intro.c_str();
+
+		jobs[0].Set(j.get<const char*>("act1"), Colors::RED);
+		jobs[1].Set(j.get<const char*>("act2"), Colors::GREEN);
+		jobs[2].Set(j.get<const char*>("act3"), Colors::BLUE);
+		jobs[3].Set(j.get<const char*>("act4"), Colors::WHITE);
+
+		// write the data back to the list
+		ListIoU(_intro.c_str(), json);
+	}
+	else
+		Serial.println("failed to parse json: " + json);
 }
 //--------------------------------------------------------------------
 void TActionRenderer::StartAll()
@@ -212,14 +248,14 @@ void showJobState(TActionJob &job, int count, int pos)
 
 	if (job.isPaused())
 	{
-		matrix.fillRect(pos - 5, 10, 4, 12, Colors::WHITE);
-		matrix.fillRect(pos + 2, 10, 4, 12, Colors::WHITE);
+		matrix.fillRect(pos - 6, 8, 5, 16, Colors::WHITE);
+		matrix.fillRect(pos + 2, 8, 5, 16, Colors::WHITE);
 	}
 
 	if (job.isDone())
 	{
-		matrix.fillRect(pos - 5, 10, 4, 12, Colors::GREEN);
-		matrix.fillRect(pos + 2, 10, 4, 12, Colors::GREEN);
+		matrix.fillRect(pos - 6, 8, 5, 16, Colors::YELLOW);
+		matrix.fillRect(pos + 2, 8, 5, 16, Colors::YELLOW);
 	}
 
 	matrix.endWrite();
@@ -228,10 +264,10 @@ void showJobState(TActionJob &job, int count, int pos)
 bool TActionRenderer::Render() // paints the action jobs onto the display
 {
 	// run the intro commands
-	if (Intro.length() > 0)
+	if (Intro != NULL)
 	{
-		Marquee(Intro.c_str(), Colors::WHITE);
-		Intro = "";
+		Marquee(Intro, Colors::WHITE);
+		Intro = NULL;
 		return true;
 	}
 
@@ -239,13 +275,15 @@ bool TActionRenderer::Render() // paints the action jobs onto the display
 	int count = activeJobCount();
 	if (count > 0)
 	{
+		int beepSecs = count == 1 ? 4 : 0;
+
 		// update all the jobs
 		int idx = 0;
 		for (int i = 0; i < 4; ++i)
 		{
 			TActionJob &j = jobs[i];
 
-			if (j.Update())
+			if (j.Update(beepSecs))
 			{
 				// Render the job
 				switch (count)
@@ -271,19 +309,20 @@ bool TActionRenderer::Render() // paints the action jobs onto the display
 
 		if (activeJobCount() == doneJobCount()) // if all jobs finished
 		{
+			ResetAll();
 			// clear the jobs back to sleeping
-			for (int i = 0; i < 4; ++i)
-				jobs[i].Cancel();
+			//for (int i = 0; i < 4; ++i)
+			//	jobs[i].Reset();
 		}
 
 		return true;
 	}
 
 	// run the out commands
-	if (Outro.length() > 0)
+	if (Outro != NULL)
 	{
-		Marquee(Outro.c_str(), Colors::WHITE);
-		Outro = "";
+		Marquee(Outro, Colors::WHITE);
+		Outro = NULL;
 		return true;
 	}
 
