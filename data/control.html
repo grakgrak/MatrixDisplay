@@ -4,8 +4,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <div id="ctrlvm">
-	<a href="edit.html" class="button"><</a>&nbsp;&nbsp;
-			<strong>Activity Control</strong>
+	<a href="edit.html" class="button"><</a>
+	<strong>Activity Control</strong>
 	<hr>
 	<my-component id="act1" caption="Activity 1:" boxclass="redbox"></my-component>
 	<my-component id="act2" caption="Activity 2:" boxclass="greenbox"></my-component>
@@ -13,9 +13,11 @@
 	<my-component id="act4" caption="Activity 4:" boxclass="whitebox"></my-component>
 
 	<br>
-	<a :href="getURL('start-all')" class="button">Start All</a>
-	<a :href="getURL('pause-all')" class="button">Pause All</a>
-	<a :href="getURL('reset-all')" class="button">Reset All</a>
+	<div v-if="showme()">
+		<a :href="getURL('start-all')" class="button">Start All</a>
+		<a :href="getURL('pause-all')" class="button">Pause All</a>
+		<a :href="getURL('reset-all')" class="button">Reset All</a>
+	</div>
 	<hr>
 </div>
 
@@ -25,8 +27,8 @@
 		props: ['caption', 'boxclass', 'id'],
 		template: `<div v-if="showme()">
 		  <span :class="boxclass"><strong>{{ caption }}</strong></span>
-		  <button class="button" v-on:click="start">Start / Pause</button>
-		  <button class="button" v-on:click="reset">Reset</button>
+		  <button class="button" @click="start">Start / Pause</button>
+		  <button class="button" @click="reset">Reset</button>
 		  <br>
 		  </div>`,
 		methods: {
@@ -40,7 +42,6 @@
 				fetch(/*'http://192.168.1.244/' +*/ "reset-"+this.id).then(resp => {});
 			}
 		}
-
 	})
 
 	// register
@@ -62,6 +63,8 @@
 		},
 		methods: {
 			getURL: function(url) { return /*'http://192.168.1.244/' +*/ url; },
+
+			showme: function () { return ((schedule.act1 != "") + (schedule.act2 != "") + (schedule.act3 != "") + (schedule.act4 != "")) > 1; },
 
 			loadSchedule: function (url) {
 				fetch(/*'http://192.168.1.244/' +*/ url)

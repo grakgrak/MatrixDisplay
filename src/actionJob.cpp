@@ -15,11 +15,13 @@ const char *getValue(const char *code, int &val)
 //--------------------------------------------------------------------
 void TActionJob::Set(const char *code, int16_t colour)
 {
-	cycle = 0;
+	loop = 0;
 	limit = 0;
 	seconds = 0;
+	beepSeconds = 0;
 	_lastTick = 0;
-	_start = NULL;
+	_loopStart = NULL;
+	_repeatStart = NULL;
 
 	_colour = colour;
 	_code = (code == NULL) ? "" : code;
@@ -73,46 +75,71 @@ void TActionJob::Reset()
 //--------------------------------------------------------------------
 bool TActionJob::NextAction()
 {
+	if(_ptr == NULL)
+		return false;
+		
 	while(true)
 	{
-		action = *_ptr; // get the current action to perform
-		switch (action)
+		action = *_ptr++; // set the current action to perform
+
+		switch (tolower(action))
 		{
-		case 'P': // prep
+		case 'b':	// beep seconds
+			_ptr = getValue(_ptr, beepSeconds);
+			break;
+		case 'r': // rest - special case
+			_ptr = getValue(_ptr, seconds);
+			if( limit > 0 && loop == limit)	// ignore the last rest if in a loop
+			{
+				while( *_ptr == ' ')	// skip spaces
+					++_ptr;
+
+				if( *_ptr == ')' || *_ptr == ']')
+					break;
+			}
+			return true;
 		case 'p': // prep
-		case 'W': // work
 		case 'w': // work
-		case 'R': // rest
-		case 'r': // rest
-			_ptr = getValue(++_ptr, seconds);
+		case 'c': // countdown
+			_ptr = getValue(_ptr, seconds);
 			return true;
 		case '[': // repeat
-		case '(': // repeat
-			_ptr = getValue(++_ptr, limit);
-			cycle = 1;
-			_start = _ptr;
-			break;
+			_ptr = getValue(_ptr, repeat);
+			_repeatStart = _ptr;
+			break;		
 		case ']': // end repeat
-		case ')': // end repeat
-			if ((_start != NULL) && (++cycle <= limit))
+			if ((_repeatStart != NULL) && (--repeat > 0))
 			{
-				_ptr = _start; // reset to start of loop
+				_ptr = _repeatStart; // reset to start of repeat
 				break;
 			}
-			_start = NULL;
-			++_ptr;
+			_repeatStart = NULL;
+			break;
+		case '(': // repeat
+			_ptr = getValue(_ptr, limit);
+			loop = 1;
+			_loopStart = _ptr;
+			break;
+		case ')': // end repeat
+			if ((_loopStart != NULL) && (++loop <= limit))
+			{
+				_ptr = _loopStart; // reset to start of loop
+				break;
+			}
+			limit = 0;
+			_loopStart = NULL;
 			break;
 		case '\0': // end of command
+			_ptr = NULL;
 			SetState(DONE);
 			return true;
 		default: // ignore anything we dont recognise
-			++_ptr;
 			break;
 		}
 	}
 }
 //--------------------------------------------------------------------
-bool TActionJob::Update(int beepSeconds)
+bool TActionJob::Update()
 {
 	if (State() == SLEEPING) // nothing to do if sleeping
 		return false;

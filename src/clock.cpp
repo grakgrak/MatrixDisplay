@@ -4,36 +4,9 @@
 #include <NTPClientLib.h>
 
 //--------------------------------------------------------------------
-//NTPClient timeClient(ntpUDP, NTPSERVER, 0, 600 * 1000);
-//--------------------------------------------------------------------
-bool blink = false;
-#define SECS_SF (188.0 / 60.0)
-//--------------------------------------------------------------------
-// boolean isDST(time_t t)
-// {
-// 	tmElements_t te;
-// 	te.Year = year(t) - 1970;
-// 	te.Month = 3;
-// 	te.Day = 1;
-// 	te.Hour = 0;
-// 	te.Minute = 0;
-// 	te.Second = 0;
-// 	time_t dstStart, dstEnd, current;
+time_t _now;	// the current time
+#define SECS_SF (188.0 / 60.0)	// number of pixels per second
 
-// 	dstStart = makeTime(te);
-// 	dstStart = nextSunday(dstStart);
-// 	dstStart = nextSunday(dstStart);
-// 	dstStart = nextSunday(dstStart); //third sunday in march
-// 	dstStart += 2 * SECS_PER_HOUR;   //2AM
-// 	te.Month = 10;
-// 	dstEnd = makeTime(te);
-// 	dstStart = nextSunday(dstStart);
-// 	dstStart = nextSunday(dstStart);
-// 	dstEnd = nextSunday(dstEnd); //third sunday in october
-// 	dstEnd += SECS_PER_HOUR;	 //1AM
-
-// 	return (t >= dstStart && t < dstEnd);
-// }
 //--------------------------------------------------------------------
 void drawSeconds(int secs, int16_t background)
 {
@@ -75,12 +48,6 @@ void drawSeconds(int secs, int16_t background)
 //--------------------------------------------------------------------
 void clock(int16_t foreground, int16_t background)
 {
-	// adjust time for BST
-	// if (isDST(timeClient.getEpochTime()))
-	//     timeClient.setTimeOffset(SECS_PER_HOUR);
-	// else
-	//     timeClient.setTimeOffset(0);
-
 	matrix.startWrite();
 
 	matrix.setTextSize(0);
@@ -88,21 +55,18 @@ void clock(int16_t foreground, int16_t background)
 	matrix.setTextColor(foreground);
 	matrix.black();
 
-	//drawSeconds(timeClient.getSeconds() + 1, background);
-	drawSeconds(second() + 1, background);
+	int secs = second(_now);
+	drawSeconds(secs + 1, background);
 
-	// draw the colon between digit pairs
-	blink = !blink;
-	if (blink)
+	// blink the colon between digit pairs
+	if (secs % 2 == 0)
 	{
 		matrix.drawRect(31, 11, 2, 2, background);
 		matrix.drawRect(31, 18, 2, 2, background);
 	}
 
-	//String mins(timeClient.getMinutes());
-	//String hours(timeClient.getHours());
-	String mins(minute());
-	String hours(hour());
+	String mins(minute(_now));
+	String hours(hour(_now));
 
 	if (mins.length() == 1)
 		mins = "0" + mins;
@@ -116,21 +80,18 @@ void clock(int16_t foreground, int16_t background)
 	matrix.print(mins);
 
 	matrix.endWrite();
-	vTaskDelay(1000);
 }
 
 //--------------------------------------------------------------------
 bool updateClock()
 {
-	//return timeClient.update();
+	_now = now();	// capture the current time - calling now() can cause a sync with the NTP server
+	return true;
 }
 
 //--------------------------------------------------------------------
 void initClock()
 {
-	//timeClient.begin();
-	//timeClient.update();
-
 	// timezone 0, daylight saving adjust, 0 minutes offset for tz
 	NTP.begin("pool.ntp.org", 0, true, 0);
 }

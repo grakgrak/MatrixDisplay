@@ -4,12 +4,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <div id="app">
+	<strong>Select Schedule</strong>
+	<hr/>
 	<table style="white-space: nowrap;">
-		<thead>
-			<th>Name</th>
-			<th></th>
-			<th></th>
-		</thead>
 		<tbody>
 			<tr v-for="(title,index) in titles">
 				<td>{{ title }}</td>
@@ -24,9 +21,8 @@
 			</tr>
 		</tbody>
 	</table>
+	<hr/>
 </div>
-
-
 
 <script>
 	Vue.component('confirm', {
@@ -110,6 +106,7 @@
 						app.titles.sort();
 					})
 					.catch(function (error) {
+						//app.titles = ['Very long titled schedule','second schedule', 'third schedule'];
 						alert(error);
 					})
 			}

@@ -19,10 +19,12 @@ class TActionJob
 
 	int action; // Prep, Work, Rest
 	int seconds;
-	int cycle;
+	int beepSeconds;
+	int loop;
 	int limit;
+	int repeat;
 
-	bool Update(int beepSeconds);
+	bool Update();
 	
 	void ToggleRun();
 	void Run();
@@ -44,7 +46,8 @@ class TActionJob
 	TJobState _state = SLEEPING; // Pause, run, done
 	String _code = "";
 	const char *_ptr;
-	const char *_start;
+	const char *_loopStart;
+	const char *_repeatStart;
 	unsigned long _lastTick;
 	int16_t _colour;
 	bool NextAction();

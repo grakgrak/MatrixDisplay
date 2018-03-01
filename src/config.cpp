@@ -153,7 +153,6 @@ void dumpNVS(String &res)
 	esp_partition_iterator_release(pi); // Release the iterator
 
 	uint8_t namespace_ID = FindNsID(nvs, "list"); // Find ID of our namespace in NVS
-	Serial.printf("Namespace ID is %d\n", namespace_ID);
 
 	uint32_t offset = 0;  // Offset in nvs partition
 	while (offset < nvs->size)

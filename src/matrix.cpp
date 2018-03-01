@@ -108,7 +108,7 @@ void Marquee(const char *msg, int16_t colour)
 
 	matrix.getTextBounds((char *)msg, 0, 0, &x1, &y1, &w, &h);
 
-	w += 2;
+	w += 3;
 	int pos = 64;
 	while (pos >= -w)
 	{

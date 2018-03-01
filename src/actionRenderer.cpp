@@ -14,54 +14,77 @@ void fullPWR(const TActionJob &job)
 
 	int16_t colour;
 	const char *text;
-	switch (job.action)
+	switch (tolower(job.action))
 	{
-	case 'P':
 	case 'p':
 		text = "Prep";
 		colour = Colors::CYAN;
 		break;
-	case 'W':
 	case 'w':
 		text = "Work";
 		colour = Colors::RED;
 		break;
-	case 'R':
 	case 'r':
 		text = "Rest";
 		colour = Colors::GREEN;
 		break;
+	case 'c':
+		text = "";
+		colour = Colors::WHITE;
+		break;
 	}
 
-	matrix.setFont(NULL);
-	matrix.setTextWrap(false);
-	matrix.setTextColor(colour);
-
-	// display action
 	matrix.black();
-	matrix.drawRect(0, 0, 64, 32, colour);
-	matrix.setTextSize(1);
-	matrix.setCursor(4, 4);
-	matrix.print(text);
 
-	if (job.cycle > 0) // display cycle of limit
+	// if displaying the countdown clock
+	if (tolower(job.action) == 'c')
 	{
-		matrix.setCursor(4, 20);
-		matrix.print(job.cycle);
-		matrix.setCursor(matrix.getCursorX() + 1, 20);
-		matrix.print("of");
-		matrix.setCursor(matrix.getCursorX() + 1, 20);
-		matrix.print(job.limit);
+		matrix.setFont(&FreeSans12pt7b);
+		matrix.setTextColor(colour);
+		matrix.setTextSize(0);
+
+		String mins(job.seconds / 60);
+		String secs(job.seconds % 60);
+
+		if (mins.length() == 1)
+			mins = "0" + mins;
+		if (secs.length() == 1)
+			secs = "0" + secs;
+
+		matrix.setCursor(3, 23);
+		matrix.print(mins);
+		matrix.print(":");
+		matrix.print(secs);
 	}
-
-	// display seconds
-	matrix.setTextSize(2);
-	if (job.seconds < 10)
-		matrix.setCursor(44, 8);
 	else
-		matrix.setCursor(38, 8);
-	matrix.print(job.seconds);
+	{
+		// display action
+		matrix.setFont(NULL);
+		matrix.setTextWrap(false);
+		matrix.setTextColor(colour);
+		matrix.drawRect(0, 0, 64, 32, colour);
+		matrix.setTextSize(1);
+		matrix.setCursor(4, 4);
+		matrix.print(text);
 
+		if (job.loop > 0) // display cycle of limit
+		{
+			matrix.setCursor(4, 20);
+			matrix.print(job.loop);
+			matrix.setCursor(matrix.getCursorX() + 1, 20);
+			matrix.print("of");
+			matrix.setCursor(matrix.getCursorX() + 1, 20);
+			matrix.print(job.limit);
+		}
+
+		// display seconds
+		matrix.setTextSize(2);
+		if (job.seconds < 10)
+			matrix.setCursor(44, 8);
+		else
+			matrix.setCursor(38, 8);
+		matrix.print(job.seconds);
+	}
 	matrix.endWrite();
 }
 
@@ -84,19 +107,16 @@ void drawPWR(int count, int pos, const TActionJob &job)
 	// get the colour
 	int16_t colour;
 	const char *text;
-	switch (job.action)
+	switch (tolower(job.action))
 	{
-	case 'P':
 	case 'p':
 		text = "P";
 		colour = Colors::CYAN;
 		break;
-	case 'W':
 	case 'w':
 		text = "W";
 		colour = Colors::RED;
 		break;
-	case 'R':
 	case 'r':
 		text = "R";
 		colour = Colors::GREEN;
@@ -108,7 +128,7 @@ void drawPWR(int count, int pos, const TActionJob &job)
 	matrix.setTextColor(colour);
 
 	// display action
-	matrix.fillRect(x, 0, w, 32, 0);			   // Blank the background
+	matrix.fillRect(x, 0, w, 32, 0);			// Blank the background
 	matrix.drawRect(x, 0, w, 32, job.Colour()); // draw outline
 	matrix.setTextSize(1);
 	matrix.setCursor(x + 3, 3);
@@ -122,10 +142,10 @@ void drawPWR(int count, int pos, const TActionJob &job)
 	}
 	else
 	{
-		if (job.cycle > 0) // display cycle of limit
+		if (job.loop > 0) // display loop count of limit
 		{
 			matrix.setCursor(x + 3, 23);
-			matrix.print(job.cycle);
+			matrix.print(job.loop);
 			matrix.setCursor(matrix.getCursorX() + 1, 23);
 			matrix.print("of");
 			matrix.setCursor(matrix.getCursorX() + 1, 23);
@@ -133,7 +153,7 @@ void drawPWR(int count, int pos, const TActionJob &job)
 		}
 
 		matrix.setTextSize(2);
-		matrix.setCursor((job.seconds < 10) ? mid - 5 : mid - 11, job.cycle > 0 ? 8 : 11);
+		matrix.setCursor((job.seconds < 10) ? mid - 5 : mid - 11, job.loop > 0 ? 8 : 11);
 	}
 
 	matrix.print(job.seconds);
@@ -160,26 +180,26 @@ String TActionRenderer::GetJson()
 
 	String res;
 	j.printTo(res);
-Serial.println("GetJson: " + res);
+	Serial.println("GetJson: " + res);
 	return res;
 }
 //--------------------------------------------------------------------
 void TActionRenderer::SetJson(const String &json)
 {
-Serial.println("SetJson: " + json);
+	Serial.println("SetJson: " + json);
 
 	StaticJsonBuffer<512> jsonBuffer;
 	JsonObject &j = jsonBuffer.parseObject(json);
 
-	if(j.success())
+	if (j.success())
 	{
 		_intro = j.get<String>("intro");
 		Intro = _intro.c_str();
 
-		jobs[0].Set(j.get<const char*>("act1"), Colors::RED);
-		jobs[1].Set(j.get<const char*>("act2"), Colors::GREEN);
-		jobs[2].Set(j.get<const char*>("act3"), Colors::BLUE);
-		jobs[3].Set(j.get<const char*>("act4"), Colors::WHITE);
+		jobs[0].Set(j.get<const char *>("act1"), Colors::RED);
+		jobs[1].Set(j.get<const char *>("act2"), Colors::GREEN);
+		jobs[2].Set(j.get<const char *>("act3"), Colors::BLUE);
+		jobs[3].Set(j.get<const char *>("act4"), Colors::WHITE);
 
 		// write the data back to the list
 		ListIoU(_intro.c_str(), json);
@@ -208,12 +228,12 @@ void TActionRenderer::ResetAll()
 //--------------------------------------------------------------------
 void TActionRenderer::StartPause(int job)
 {
-	jobs[job-1].ToggleRun();
+	jobs[job - 1].ToggleRun();
 }
 //--------------------------------------------------------------------
 void TActionRenderer::Reset(int job)
 {
-	jobs[job-1].Reset();
+	jobs[job - 1].Reset();
 }
 //--------------------------------------------------------------------
 int TActionRenderer::activeJobCount()
@@ -248,14 +268,18 @@ void showJobState(TActionJob &job, int count, int pos)
 
 	if (job.isPaused())
 	{
+		matrix.fillRect(pos - 7, 7, 14, 18, Colors::BLACK);
+
 		matrix.fillRect(pos - 6, 8, 5, 16, Colors::WHITE);
 		matrix.fillRect(pos + 2, 8, 5, 16, Colors::WHITE);
 	}
 
 	if (job.isDone())
 	{
-		matrix.fillRect(pos - 6, 8, 5, 16, Colors::YELLOW);
-		matrix.fillRect(pos + 2, 8, 5, 16, Colors::YELLOW);
+		matrix.fillRect(pos - 7, 7, 14, 18, Colors::BLACK);
+
+		matrix.fillRect(pos - 6, 8, 5, 16, Colors::GREEN);
+		matrix.fillRect(pos + 2, 8, 5, 16, Colors::GREEN);
 	}
 
 	matrix.endWrite();
@@ -275,15 +299,13 @@ bool TActionRenderer::Render() // paints the action jobs onto the display
 	int count = activeJobCount();
 	if (count > 0)
 	{
-		int beepSecs = count == 1 ? 4 : 0;
-
 		// update all the jobs
 		int idx = 0;
 		for (int i = 0; i < 4; ++i)
 		{
 			TActionJob &j = jobs[i];
 
-			if (j.Update(beepSecs))
+			if (j.Update())
 			{
 				// Render the job
 				switch (count)
@@ -309,10 +331,7 @@ bool TActionRenderer::Render() // paints the action jobs onto the display
 
 		if (activeJobCount() == doneJobCount()) // if all jobs finished
 		{
-			ResetAll();
-			// clear the jobs back to sleeping
-			//for (int i = 0; i < 4; ++i)
-			//	jobs[i].Reset();
+			//ResetAll();
 		}
 
 		return true;

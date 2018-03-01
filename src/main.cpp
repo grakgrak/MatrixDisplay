@@ -12,11 +12,8 @@
 #define BEEPER_PIN 33
 #define WIFI_CONNECT_TIMEOUT 20000
 
-//#define SSID "MatrixAP"
-//#define PASSWORD "taketheredpill"
-#define SSID "BTHub6-ZPR3"
-#define PASSWORD "Hxv7Kx4raPV7"
 #define HOSTNAME "Matrix64"
+#define SOFT_AP_PASSWORD "taketheredpill"
 
 bool otaUpdate = false;
 bool softAP = false;
@@ -44,13 +41,13 @@ bool isWiFiConnected(int timeout)
 //--------------------------------------------------------------------
 void initWifi()
 {
-	Serial.println("InitWiFi");
+	Serial.print("InitWiFi: ");
 
-	//String ssid = SSID;
-	//String passwd = PASSWORD;
 	String ssid = GetCfgString("SSID", "");
 	String passwd = GetCfgString("PASSWORD", "");
 	String hostname = GetCfgString("HostName", HOSTNAME);
+
+	Serial.println(ssid);
 
 	if(ssid != "")	// try to connect to the router
 	{
@@ -68,21 +65,25 @@ void initWifi()
 
 		if(WiFi.status() == WL_CONNECTED)	// if connected then all good
 		{
-			Serial.println("WiFi Connected - " + WiFi.localIP().toString());
+			String ip = WiFi.localIP().toString();
+			Serial.println("\nWiFi Connected - " + ip);
 
-			Marquee(WiFi.localIP().toString().c_str(), Colors::BLUE);
-
+			Marquee(ip.c_str(), Colors::BLUE);
 			return;
 		}
 	}
 
 	// ssid is not set or connection attempt timed out
 	softAP = true;
-	Serial.println("Starting SoftAP");
 
-	WiFi.softAP("Matrix64", "taketheredpill");
+	WiFi.mode(WIFI_AP);
+	WiFi.softAP(HOSTNAME, SOFT_AP_PASSWORD);
 
-	Serial.println(WiFi.softAPIP().toString());
+	String ip = WiFi.softAPIP().toString();
+	Serial.println("\nStarting SoftAP - " + ip);
+
+	Marquee("SoftAP", Colors::BLUE);
+	Marquee(ip.c_str(), Colors::BLUE);
 }
 
 //--------------------------------------------------------------------
@@ -93,7 +94,10 @@ void main_task(void *pvParameter)
 	{
 		if (otaUpdate == false)
 			if (ActionRenderer.Render() == false)	// if action renderer is idle then
+			{
 				clock(Colors::WHITE, Colors::GREEN); //  display the clock
+				vTaskDelay(500);
+			}
 
 		vTaskDelay(10);
 	}
@@ -159,7 +163,7 @@ void init_OTA()
 
 	ArduinoOTA.setPort(3232);
 	ArduinoOTA.setHostname(HOSTNAME);
-	//ArduinoOTA.setPassword(HOSTNAME);
+	ArduinoOTA.setPassword(HOSTNAME);
 	//ArduinoOTA.setPasswordHash(eecbf409f68cc72c961d8251147ef222);	// MD5 hash of Matrix64
 
 	ArduinoOTA.begin();
@@ -204,14 +208,14 @@ void loop()
 {
 	if(softAP)
 	{
-		Marquee("SoftAP", Colors::BLUE);
-		Marquee(WiFi.softAPIP().toString().c_str(), Colors::BLUE);
+		handleWebsite(softAP);
 
-		// reboot very 5 mins in softap mode
+		// reboot after 5 mins in softap mode
 		if( millis() > 60 * 1000 * 5)
 			esp_restart();
 	}
 	else
+	{
 		if (isWiFiConnected(750))
 		{
 			if (updateClock() == false)
@@ -219,5 +223,6 @@ void loop()
 
 			ArduinoOTA.handle();
 		}
-	vTaskDelay(100);
+		vTaskDelay(100);
+	}
 }
