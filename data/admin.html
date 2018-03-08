@@ -1,80 +1,129 @@
-<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.min.js"></script>
+<link rel="stylesheet" href="picnic.css">
+<link rel="stylesheet" href="style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<strong>Administration</strong>
-<hr>
-<form action="/config" method="post">
-	<table border="0" cellspacing="11" cellpadding="3" style="width:350px">
-		<tr>
-			<td align="right">SSID:</td>
-			<td>
-				<input type="text" id="ssid" name="ssid" value="">
-			</td>
-		</tr>
-		<tr>
-			<td align="right">Password:</td>
-			<td>
-				<input type="password" id="password" name="password" value="">
-			</td>
-		</tr>
-		<tr>
-			<td align="right">Brightness:</td>
-			<td>
-					<select id="bright" name="bright">
-						<option value="1">1</option>
+
+<div id="app">
+	<strong>Administration</strong>
+	<hr>
+	<div>
+		<table border="0" cellspacing="11" cellpadding="3" style="width:350px">
+			<tr>
+				<td align="right">SSID:</td>
+				<td>
+					<input v-model="ssid">
+				</td>
+			</tr>
+			<tr>
+				<td align="right">Password:</td>
+				<td>
+					<input v-model="password">
+				</td>
+			</tr>
+			<tr>
+				<td align="right">Brightness:</td>
+				<td>
+					<select v-model="bright">
 						<option value="2">2</option>
-						<option value="3">3</option>
 						<option value="4">4</option>
-						<option value="5">5</option>
 						<option value="6">6</option>
-						<option value="7">7</option>
 						<option value="8">8</option>
-						<option value="9">9</option>
 						<option value="10">10</option>
 					</select>
-			</td>
-		</tr>
-		<tr>
-			<td colspan="2" align="center">
-				<input type="submit" style="width:100px" class="btn btn--m btn--blue" value="Save">
-			</td>
-		</tr>
-	</table>
-</form>
-<hr>
-<a href="/restart" style="width:65px" class="btn btn--m btn--blue">Restart</a>
-<hr>
-
+				</td>
+				<input type="hidden" v-model="ticks">
+			</tr>
+			<tr>
+				<td colspan="2" align="center">
+					<input type="submit" style="width:100px" @click="save" class="button" value="Save">
+				</td>
+			</tr>
+		</table>
+	</div>
+	<hr>
+	<a href="/restart" class="button">Restart</a>
+	<hr>
+</div>
 
 <script>
-	window.onload = function () {
-		load("style.css", "css", function () {
-			load("microajax.js", "js", function () {
-				setValues("/config");
-				setTimeout(GetState, 3000);
-			});
-		});
-	}
 
-	function load(e, t, n) {
-		if ("js" == t) {
-			var a = document.createElement("script");
-			a.src = e,
-				a.type = "text/javascript",
-				a.async = !1,
-				a.onload = function () {
-					n()
-				},
-				document.getElementsByTagName("head")[0].appendChild(a)
-		} else if ("css" == t) {
-			var a = document.createElement("link");
-			a.href = e,
-				a.rel = "stylesheet",
-				a.type = "text/css",
-				a.async = !1,
-				a.onload = function () {
-					n()
-				},
-				document.getElementsByTagName("head")[0].appendChild(a)
+	var config = {
+		bright: 2,
+		ssid: "",
+		password: "",
+		ticks: 0
+	};
+
+	var app = new Vue({
+		el: '#app',
+		data: config,
+		created: function () {
+			this.loadConfig(/*'http://192.168.1.244/' +*/ "json/config");
+		},
+		methods: {
+			loadConfig: function (url) {
+				fetch(url)
+					.then(function (resp) {
+						return resp.json();
+					})
+					.then(function (j) {
+						//console.log(j);
+						config.ssid = j.ssid;
+						config.password = j.password;
+						config.bright = j.bright;
+						config.ticks = j.ticks;
+					})
+					.catch(function (error) {
+						console.log(error);
+					})
+			},
+			save: function () {
+				config.ticks = Math.round((new Date()).getTime() / 1000);
+
+				var formData = new FormData();
+				formData.append("config", JSON.stringify(this.$data));
+
+				fetch(/*'http://192.168.1.244/' +*/ "json/config", 
+				{
+					method: "POST",
+					dataType: "json",
+					body: formData
+				})
+				.catch(function (error) {console.log(error); })
+			},
+
 		}
-	}
+	});
+
+	// window.onload = function () {
+	// 	load("style.css", "css", function () {
+	// 		load("microajax.js", "js", function () {
+	// 			setValues("/config");
+	// 			setTimeout(GetState, 3000);
+	// 		});
+	// 	});
+	// }
+
+	// function load(e, t, n) {
+	// 	if ("js" == t) {
+	// 		var a = document.createElement("script");
+	// 		a.src = e,
+	// 			a.type = "text/javascript",
+	// 			a.async = !1,
+	// 			a.onload = function () {
+	// 				n()
+	// 			},
+	// 			document.getElementsByTagName("head")[0].appendChild(a)
+	// 	} else if ("css" == t) {
+	// 		var a = document.createElement("link");
+	// 		a.href = e,
+	// 			a.rel = "stylesheet",
+	// 			a.type = "text/css",
+	// 			a.async = !1,
+	// 			a.onload = function () {
+	// 				n()
+	// 			},
+	// 			document.getElementsByTagName("head")[0].appendChild(a)
+	// 	}
+	// }
 </script>

@@ -1,4 +1,4 @@
-<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.min.js"></script>
 <link rel="stylesheet" href="picnic.css">
 <link rel="stylesheet" href="style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -69,20 +69,6 @@
 		data: {
 			titles: []
 		},
-		computed: {
-			isValid: function (g) {
-				return g.act1 != ''
-			},
-			activeItems: function () {
-				return this.greets
-					.filter(function (itm) {
-						return itm.act1 != '';
-					})
-					.sort(function (a, b) {
-						return a.name.localeCompare(b.name);
-					});
-			}
-		},
 		created: function () {
 			fetch( /*"http://192.168.1.244/" +*/ "clock").then(resp => {});
 			this.loadTitles("json/list");
@@ -93,7 +79,7 @@
 				this.loadTitles("json/list");
 			},
 			edit: function (idx) {
-				fetch( /*"http://192.168.1.244/" +*/ "json/load?name=" + this.titles[idx]).then(resp => {});
+				fetch( /*"http://192.168.1.244/" +*/ "json/edit?name=" + this.titles[idx]).then(resp => {});
 				window.location = "edit.html";
 			},
 			loadTitles: function (url) {

@@ -9,7 +9,8 @@ class TActionRenderer
 
 	String GetJson();
 	void SetJson(const String &json);
-	void Select(const String &key);
+	void Select(const String &key); // load and run Intro
+	void Edit(const String &key);   // just load
 
 	void StartAll();
 	void PauseAll();
@@ -30,4 +31,3 @@ class TActionRenderer
 };
 
 extern TActionRenderer ActionRenderer;
-

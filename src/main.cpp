@@ -48,6 +48,7 @@ void initWifi()
 	String hostname = GetCfgString("HostName", HOSTNAME);
 
 	Serial.println(ssid);
+	Serial.println(passwd);
 
 	if(ssid != "")	// try to connect to the router
 	{
@@ -87,7 +88,7 @@ void initWifi()
 }
 
 //--------------------------------------------------------------------
-void main_task(void *pvParameter)
+void display_task(void *pvParameter)
 {
 	ActionRenderer.Intro = "Training Display...";
 	while (true)
@@ -95,7 +96,10 @@ void main_task(void *pvParameter)
 		if (otaUpdate == false)
 			if (ActionRenderer.Render() == false)	// if action renderer is idle then
 			{
-				clock(Colors::WHITE, Colors::GREEN); //  display the clock
+				if(softAP)
+					clock(Colors::CYAN, Colors::BLUE); //  display the clock
+				else
+					clock(Colors::WHITE, Colors::GREEN); //  display the clock
 				vTaskDelay(500);
 			}
 
@@ -104,15 +108,18 @@ void main_task(void *pvParameter)
 }
 
 //--------------------------------------------------------------------
-void initTasks()
+void initTasks(bool softAP)
 {
 	Serial.println("Start main task");
-	xTaskCreate(&main_task, "main_task", 10000, NULL, uxTaskPriorityGet(NULL), NULL);
+	xTaskCreate(&display_task, "display_task", 10000, NULL, uxTaskPriorityGet(NULL), NULL);
 }
 
 //--------------------------------------------------------------------
-void init_OTA()
+void init_OTA(bool softAP)
 {
+	if(softAP)
+		return;
+
 	Serial.println("init OTA");
 
 	// ArduinoOTA callback functions
@@ -194,12 +201,10 @@ void setup()
 
 	initWifi();
 	initWebsite(softAP);
-	if(softAP == false)
-	{
-		initClock();
-		initTasks();
-		init_OTA();
-	}
+	initClock(softAP);
+	initTasks(softAP);
+	init_OTA(softAP);
+
 	Serial.println("Setup Finished");
 }
 
@@ -209,18 +214,18 @@ void loop()
 	if(softAP)
 	{
 		handleWebsite(softAP);
-
+		updateClock();
+			
+		vTaskDelay(100);
 		// reboot after 5 mins in softap mode
-		if( millis() > 60 * 1000 * 5)
-			esp_restart();
+		// if( millis() > 60 * 1000 * 5)
+		// 	esp_restart();
 	}
 	else
 	{
 		if (isWiFiConnected(750))
 		{
-			if (updateClock() == false)
-				vTaskDelay(3000);
-
+			updateClock();
 			ArduinoOTA.handle();
 		}
 		vTaskDelay(100);

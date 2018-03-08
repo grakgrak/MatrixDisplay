@@ -2,6 +2,9 @@
 #include <nvs_flash.h>
 #include <nvs.h>
 #include <esp_partition.h>
+#include <ArduinoJson.h>
+#include <TimeLib.h>
+#include "matrix.h"
 
 struct nvs_entry
 {
@@ -218,4 +221,42 @@ void ListIoU( const char *key, const String &data)
 void ListDelete( const char *key)
 {
 	nvs_erase_key(list_nvs, key);
+}
+
+//--------------------------------------------------------------------
+void SetAdminJson(const String &json)
+{
+	Serial.println("SetAdminJson: " + json);
+
+	StaticJsonBuffer<512> jsonBuffer;
+	JsonObject &j = jsonBuffer.parseObject(json);
+
+	if (j.success())
+	{
+		SetCfgString("SSID", j.get<const char *>("ssid"));
+		SetCfgString("PASSWORD", j.get<const char *>("password"));
+		SetCfgInt("Brightness", j.get<int>("bright"));
+
+		matrix.setBrightness(j.get<int>("bright"));
+		setTime(j.get<time_t>("ticks"));
+	}
+	else
+		Serial.println("failed to parse admin json: " + json);
+
+}
+//--------------------------------------------------------------------
+String GetAdminJson()
+{
+	StaticJsonBuffer<512> jsonBuffer;
+	JsonObject &j = jsonBuffer.createObject();
+
+	j["ssid"] = GetCfgString("SSID", "MySSID");
+	j["password"] = GetCfgString("PASSWORD", "MyPassword");
+	j["bright"] = GetCfgInt("Brightness", 2);
+	j["ticks"] = now();
+
+	String res;
+	j.printTo(res);
+	Serial.println("GetAdminJson: " + res);
+	return res;
 }

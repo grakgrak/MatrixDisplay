@@ -1,4 +1,4 @@
-<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.min.js"></script>
 <link rel="stylesheet" href="picnic.css">
 <link rel="stylesheet" href="style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -30,7 +30,7 @@
 			</tr>
 			<tr>
 				<td colspan="2" align="center">
-					<button class="button" v-on:click="load">Load</button>
+					<button class="button" v-on:click="save">Load</button>
 					<a :href="getURL('clock')" class="button">Clock</a>
 				</td>
 			</tr>
@@ -85,7 +85,7 @@
 						console.log(error);
 					})
 			},
-			load: function () {
+			save: function () {
 				var formData = new FormData();
 				formData.append("schedule", JSON.stringify(this.$data));
 

@@ -9,13 +9,12 @@
 #include "website/admin.html.gz.h"
 #include "website/edit.html.gz.h"
 #include "website/control.html.gz.h"
-#include "website/picnic.css.gz.h"
-#include "website/style.css.gz.h"
-#include "website/microajax.js.gz.h"
 #include "website/favicon.ico.gz.h"
 
 #include "website/vue.min.js.gz.h"
-#include "website/picnic.min.css.gz.h"
+#include "website/picnic.css.gz.h"
+#include "website/style.css.gz.h"
+//#include "website/microajax.js.gz.h"
 
 #include "config.h"
 
@@ -123,77 +122,43 @@ void sendGzipResponse(AsyncWebServerRequest *request, const String &mimeType, co
 }
 
 //--------------------------------------------------------------------
-void handleConfigPost(AsyncWebServerRequest *request)
-{
-	SetCfgString("SSID", request->getParam("ssid", true)->value());
-	SetCfgString("PASSWORD", request->getParam("password", true)->value());
+// void initCaptivePortal()
+// {
+// 	Serial.println("Init Captive Portal");
 
-	if (request->hasParam("bright", true))
-	{
-		int bright = request->getParam("bright", true)->value().toInt();
-		if (bright > 0 && bright <= 10)
-		{
-			SetCfgInt("Brightness", bright);
-			matrix.setBrightness(bright);
-		}
-	}
+// 	/* Setup the DNS server redirecting all the domains to the apIP */
+// 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+// 	if(dnsServer.start(DNS_PORT, "*", WiFi.softAPIP()) == false )
+// 		Serial.println("Failed to start DNS server");
 
-	sendGzipResponse(request, "text/html", admin_html_gz, admin_html_gz_len);
-	//request->send(204);	// No content
-}
-//--------------------------------------------------------------------
-void handleConfigGet(AsyncWebServerRequest *request)
-{
-	String values =
-		"ssid|" + GetCfgString("SSID", "MySSID") + "|input\n" +
-		"password|" + GetCfgString("PASSWORD", "MyPassword") + "|input\n" +
-		"bright|" + String(GetCfgInt("Brightness", 2)) + "|input\n";
+// 	// Web pages
+// 	server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+// 		sendGzipResponse(request, "text/html", admin_html_gz, admin_html_gz_len);
+// 	});
+// 	server.on("/admin.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+// 		sendGzipResponse(request, "text/html", admin_html_gz, admin_html_gz_len);
+// 	});
+// 	server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+// 		sendGzipResponse(request, "text/css", style_css_gz, style_css_gz_len);
+// 	});
+// 	server.on("/microajax.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+// 		sendGzipResponse(request, "text/javascript", microajax_js_gz, microajax_js_gz_len);
+// 	});
+// 	server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
+// 		sendGzipResponse(request, "image/x-icon", favicon_ico_gz, favicon_ico_gz_len);
+// 	});
 
-	request->send(200, "text/plain", values);
-}
+// 	// Actions
+// 	server.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request) {
+// 		request->send_P(200, "text/html", Page_Restart);
+// 		delay(1000);
+// 		esp_restart();
+// 	});
 
-//--------------------------------------------------------------------
-void initCaptivePortal()
-{
-	Serial.println("Init Captive Portal");
+// 	server.onNotFound(handleNotFound);
 
-	/* Setup the DNS server redirecting all the domains to the apIP */
-	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-	if(dnsServer.start(DNS_PORT, "*", WiFi.softAPIP()) == false )
-		Serial.println("Failed to start DNS server");
-
-	// Web pages
-	server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-		sendGzipResponse(request, "text/html", admin_html_gz, admin_html_gz_len);
-	});
-	server.on("/admin.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-		sendGzipResponse(request, "text/html", admin_html_gz, admin_html_gz_len);
-	});
-	server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-		sendGzipResponse(request, "text/css", style_css_gz, style_css_gz_len);
-	});
-	server.on("/microajax.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-		sendGzipResponse(request, "text/javascript", microajax_js_gz, microajax_js_gz_len);
-	});
-	server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
-		sendGzipResponse(request, "image/x-icon", favicon_ico_gz, favicon_ico_gz_len);
-	});
-
-	// Data Load / Save
-	server.on("/config", HTTP_POST, handleConfigPost);
-	server.on("/config", HTTP_GET, handleConfigGet);
-
-	// Actions
-	server.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request) {
-		request->send_P(200, "text/html", Page_Restart);
-		delay(1000);
-		esp_restart();
-	});
-
-	server.onNotFound(handleNotFound);
-
-	server.begin();
-}
+// 	server.begin();
+// }
 
 //--------------------------------------------------------------------
 void handleWebsite(bool softAP)
@@ -208,50 +173,87 @@ void initWebsite(bool softAP)
 {
 	Serial.println("Init Website");
 
+	// if (softAP)
+	// {
+	// 	initCaptivePortal();
+	// 	return;
+	// }
+
 	if (softAP)
 	{
-		initCaptivePortal();
-		return;
+		dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+		if(dnsServer.start(DNS_PORT, "*", WiFi.softAPIP()) == false )
+			Serial.println("Failed to start DNS server");
 	}
-
-	MDNS.begin(WiFi.getHostname());
-	MDNS.addService("http", "tcp", 80);
+	else
+	{
+		MDNS.begin(WiFi.getHostname());
+		MDNS.addService("http", "tcp", 80);
+	}
 
 	// Json Data Load / Save
 	server.on("/json/list", HTTP_GET, [](AsyncWebServerRequest *request) {
 		request->send(200, "text/json", ListReadAll());
 	});
 
+	server.on("/json/delete", HTTP_GET, [](AsyncWebServerRequest *request) {
+		if( request->hasParam("name"))
+		{
+			String name = request->getParam("name")->value();
+			ListDelete(name.c_str());
+		}
+		request->send(204);
+	});
+
 	server.on("/json/load", HTTP_POST, [](AsyncWebServerRequest *request) {
-		ActionRenderer.SetJson(request->getParam("schedule", true)->value());
+		if( request->hasParam("schedule", true))
+			ActionRenderer.SetJson(request->getParam("schedule", true)->value());
 		request->send(200, "text/json", "{status:\"ok\"}");
 	});
 
 	server.on("/json/load", HTTP_GET, [](AsyncWebServerRequest *request) {
-		if(request->hasParam("name"))
-			ActionRenderer.Select(request->getParam("name")->value());
+		if( request->hasParam("name"))
+		{
+			String name = request->getParam("name")->value();
+			ActionRenderer.Select(name.c_str());
+		}
 		request->send(200, "text/json", ActionRenderer.GetJson());
 	});
-	
-	server.on("/json/delete", HTTP_GET, [](AsyncWebServerRequest *request) {
-		if(request->hasParam("name"))
-			ListDelete(request->getParam("name")->value().c_str());
-		request->send(204);
+
+	server.on("/json/edit", HTTP_GET, [](AsyncWebServerRequest *request) {
+		if( request->hasParam("name"))
+		{
+			String name = request->getParam("name")->value();
+			ActionRenderer.Edit(name.c_str());
+		}
+		request->send(200, "text/json", ActionRenderer.GetJson());
 	});
 
-	// Data Load / Save
-	server.on("/config", HTTP_POST, handleConfigPost);
-	server.on("/config", HTTP_GET, handleConfigGet);
+	server.on("/json/config", HTTP_POST, [](AsyncWebServerRequest *request) {
+		//String config = GetParamDef(request, "config", "");		
+		//SetAdminJson(config);
 
-	// server.on("/vue.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-	// 	sendGzipResponse(request, "text/html", vue_min_js_gz, vue_min_js_gz_len);
-	// });
+		if( request->hasParam("config", true))
+			SetAdminJson(request->getParam("config", true)->value());
+
+		request->send(200, "text/json", "{status:\"ok\"}");
+	});
+
+	server.on("/json/config", HTTP_GET, [](AsyncWebServerRequest *request) {
+		request->send(200, "text/json", GetAdminJson());
+	});
+	
+	server.on("/vue.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+		sendGzipResponse(request, "text/javascript", vue_min_js_gz, vue_min_js_gz_len);
+	});
+	server.on("/picnic.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+		sendGzipResponse(request, "text/css", picnic_css_gz, picnic_css_gz_len);
+	});
 
 	// web pages
 	server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
 		sendGzipResponse(request, "text/html", index_htm_gz, index_htm_gz_len);
 	});
-
 	server.on("/index.htm", HTTP_GET, [](AsyncWebServerRequest *request) {
 		sendGzipResponse(request, "text/html", index_htm_gz, index_htm_gz_len);
 	});
@@ -264,15 +266,12 @@ void initWebsite(bool softAP)
 	server.on("/control.html", HTTP_GET, [](AsyncWebServerRequest *request) {
 		sendGzipResponse(request, "text/html", control_html_gz, control_html_gz_len);
 	});
-	server.on("/picnic.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-		sendGzipResponse(request, "text/css", picnic_css_gz, picnic_css_gz_len);
-	});
 	server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
 		sendGzipResponse(request, "text/css", style_css_gz, style_css_gz_len);
 	});
-	server.on("/microajax.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-		sendGzipResponse(request, "text/javascript", microajax_js_gz, microajax_js_gz_len);
-	});
+	// server.on("/microajax.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+	// 	sendGzipResponse(request, "text/javascript", microajax_js_gz, microajax_js_gz_len);
+	// });
 	server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
 		sendGzipResponse(request, "image/x-icon", favicon_ico_gz, favicon_ico_gz_len);
 	});

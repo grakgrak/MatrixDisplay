@@ -167,6 +167,12 @@ void TActionRenderer::Select(const String &key)
 	SetJson(ListReadKey(key.c_str()));
 }
 //--------------------------------------------------------------------
+void TActionRenderer::Edit(const String &key)
+{
+	SetJson(ListReadKey(key.c_str()));
+	Intro = NULL;	// stop the intro from playing
+}
+//--------------------------------------------------------------------
 String TActionRenderer::GetJson()
 {
 	StaticJsonBuffer<512> jsonBuffer;
@@ -268,7 +274,7 @@ void showJobState(TActionJob &job, int count, int pos)
 
 	if (job.isPaused())
 	{
-		matrix.fillRect(pos - 7, 7, 14, 18, Colors::BLACK);
+		matrix.fillRect(pos - 7, 7, 15, 18, Colors::BLACK);
 
 		matrix.fillRect(pos - 6, 8, 5, 16, Colors::WHITE);
 		matrix.fillRect(pos + 2, 8, 5, 16, Colors::WHITE);
@@ -276,7 +282,7 @@ void showJobState(TActionJob &job, int count, int pos)
 
 	if (job.isDone())
 	{
-		matrix.fillRect(pos - 7, 7, 14, 18, Colors::BLACK);
+		matrix.fillRect(pos - 7, 7, 15, 18, Colors::BLACK);
 
 		matrix.fillRect(pos - 6, 8, 5, 16, Colors::GREEN);
 		matrix.fillRect(pos + 2, 8, 5, 16, Colors::GREEN);

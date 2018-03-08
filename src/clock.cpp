@@ -90,8 +90,12 @@ bool updateClock()
 }
 
 //--------------------------------------------------------------------
-void initClock()
+void initClock(bool softAP)
 {
 	// timezone 0, daylight saving adjust, 0 minutes offset for tz
-	NTP.begin("pool.ntp.org", 0, true, 0);
+	if(softAP == false)
+	{
+		NTP.begin("pool.ntp.org", 0, true, 0);
+		Serial.println("Started NTP Client.");
+	}
 }
