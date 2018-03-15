@@ -4,3 +4,5 @@
 .vscode/launch.json
 src/website/*.gz.h
 .vscode/*.db*
+.vscode/*.db
+.vscode/.browse.c_cpp.db*

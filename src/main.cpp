@@ -100,7 +100,7 @@ void display_task(void *pvParameter)
 					clock(Colors::CYAN, Colors::BLUE); //  display the clock
 				else
 					clock(Colors::WHITE, Colors::GREEN); //  display the clock
-				vTaskDelay(500);
+				vTaskDelay(100);
 			}
 
 		vTaskDelay(10);
