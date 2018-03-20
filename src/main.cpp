@@ -97,9 +97,9 @@ void display_task(void *pvParameter)
 			if (ActionRenderer.Render() == false)	// if action renderer is idle then
 			{
 				if(softAP)
-					clock(Colors::CYAN, Colors::BLUE); //  display the clock
+					showTime(Colors::CYAN, Colors::BLUE); //  display the clock
 				else
-					clock(Colors::WHITE, Colors::GREEN); //  display the clock
+					showTime(Colors::WHITE, Colors::GREEN); //  display the clock
 				vTaskDelay(100);
 			}
 

@@ -5,12 +5,23 @@
 
 //--------------------------------------------------------------------
 time_t _now;	// the current time
-#define SECS_SF (188.0 / 60.0)	// number of pixels per second
 
+#define PIXELS (COLUMNS * 2 + ROWS * 2 - 4)
+#define SECS_SF (PIXELS / 60.0)	// number of pixels per second
+
+#define HEIGHT	31
+
+#if COLUMNS == 64
+#define FULL_WIDTH	63
+#define HALF_WIDTH	31
+#else
+#define FULL_WIDTH	127
+#define HALF_WIDTH	63
+#endif
 //--------------------------------------------------------------------
 void drawSeconds(int secs, int16_t background)
 {
-	int x = 32;
+	int x = HALF_WIDTH + 1;
 	int y = 0;
 	int dx = 1;
 	int dy = 0;
@@ -22,19 +33,19 @@ void drawSeconds(int secs, int16_t background)
 
 		switch (i)
 		{
-		case 31:
+		case HALF_WIDTH:
 			dx = 0;
 			dy = 1;
 			break;
-		case 62:
+		case HALF_WIDTH + HEIGHT:
 			dx = -1;
 			dy = 0;
 			break;
-		case 125:
+		case FULL_WIDTH + HALF_WIDTH + HEIGHT:
 			dx = 0;
 			dy = -1;
 			break;
-		case 156:
+		case FULL_WIDTH + HALF_WIDTH + HEIGHT + HEIGHT:
 			dx = 1;
 			dy = 0;
 			break;
@@ -46,40 +57,47 @@ void drawSeconds(int secs, int16_t background)
 }
 
 //--------------------------------------------------------------------
-void clock(int16_t foreground, int16_t background)
+void clock(int hour, int minute, int sec, int16_t foreground, int16_t background)
 {
 	matrix.startWrite();
 
 	matrix.setTextSize(0);
-	matrix.setFont(&FreeSans12pt7b);
+	matrix.setFont(&FreeSans18pt7b);
 	matrix.setTextColor(foreground);
 	matrix.black();
 
-	int secs = second(_now);
-	drawSeconds(secs + 1, background);
+	int mid = COLUMNS / 2;
+	int y = 27;
+	if(sec >=0 && sec < 60)
+		drawSeconds(sec + 1, background);
 
 	// blink the colon between digit pairs
-	if (secs % 2 == 0)
+	if (sec % 2 != 0)
 	{
-		matrix.drawRect(31, 11, 2, 2, background);
-		matrix.drawRect(31, 18, 2, 2, background);
+		matrix.drawRect(mid - 1, 11, 2, 2, background);
+		matrix.drawRect(mid - 1, 18, 2, 2, background);
 	}
-
-	String mins(minute(_now));
-	String hours(hour(_now));
+	
+	String mins(minute);
+	String hours(hour);
 
 	if (mins.length() == 1)
 		mins = "0" + mins;
 	if (hours.length() == 1)
 		hours = "0" + hours;
 
-	matrix.setCursor(4, 23);
+	matrix.setCursor(mid - 40, y);
 	matrix.print(hours);
 
-	matrix.setCursor(34, 23);
+	matrix.setCursor(mid + 2, y);
 	matrix.print(mins);
 
 	matrix.endWrite();
+}
+//--------------------------------------------------------------------
+void showTime(int16_t foreground, int16_t background)
+{
+	clock( hour(_now), minute(_now), second(_now), foreground, background);
 }
 
 //--------------------------------------------------------------------

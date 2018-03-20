@@ -1,15 +1,17 @@
 #include "actionRenderer.h"
 #include "matrix.h"
+#include "clock.h"
 #include "config.h"
 #include <ArduinoJson.h>
 
 TActionRenderer ActionRenderer;
 
 //--------------------------------------------------------------------
-void fullPWR(const TActionJob &job)
+void fullPWR(const TActionJob &job, int idx)
 {
 	if (job.action == '\0')
 		return;
+
 	matrix.startWrite();
 
 	int16_t colour;
@@ -34,74 +36,69 @@ void fullPWR(const TActionJob &job)
 		break;
 	}
 
-	matrix.black();
+	int x = idx * 64; // calc the x offset
 
-	// if displaying the countdown clock
-	if (tolower(job.action) == 'c')
+	matrix.fillRect(x, 0, 64, ROWS, 0); // Blank the background
+
+	// display action
+	matrix.setFont(NULL);
+	matrix.setTextWrap(false);
+	matrix.setTextColor(colour);
+	matrix.drawRect(x, 0, 64, ROWS, colour);
+	matrix.setTextSize(1);
+	matrix.setCursor(x + 4, 4);
+	matrix.print(text);
+
+	if (job.loop > 0) // display cycle of limit
 	{
-		matrix.setFont(&FreeSans12pt7b);
-		matrix.setTextColor(colour);
-		matrix.setTextSize(0);
-
-		String mins(job.seconds / 60);
-		String secs(job.seconds % 60);
-
-		if (mins.length() == 1)
-			mins = "0" + mins;
-		if (secs.length() == 1)
-			secs = "0" + secs;
-
-		matrix.setCursor(3, 23);
-		matrix.print(mins);
-		matrix.print(":");
-		matrix.print(secs);
+		matrix.setCursor(x + 4, 20);
+		matrix.print(job.loop);
+		matrix.setCursor(matrix.getCursorX() + 1, 20);
+		matrix.print("of");
+		matrix.setCursor(matrix.getCursorX() + 1, 20);
+		matrix.print(job.limit);
 	}
+
+	// display seconds
+	matrix.setTextSize(2);
+	if (job.seconds < 10)
+		matrix.setCursor(x + 44, 8);
 	else
-	{
-		// display action
-		matrix.setFont(NULL);
-		matrix.setTextWrap(false);
-		matrix.setTextColor(colour);
-		matrix.drawRect(0, 0, 64, 32, colour);
-		matrix.setTextSize(1);
-		matrix.setCursor(4, 4);
-		matrix.print(text);
+		matrix.setCursor(x + 38, 8);
+	matrix.print(job.seconds);
 
-		if (job.loop > 0) // display cycle of limit
-		{
-			matrix.setCursor(4, 20);
-			matrix.print(job.loop);
-			matrix.setCursor(matrix.getCursorX() + 1, 20);
-			matrix.print("of");
-			matrix.setCursor(matrix.getCursorX() + 1, 20);
-			matrix.print(job.limit);
-		}
-
-		// display seconds
-		matrix.setTextSize(2);
-		if (job.seconds < 10)
-			matrix.setCursor(44, 8);
-		else
-			matrix.setCursor(38, 8);
-		matrix.print(job.seconds);
-	}
 	matrix.endWrite();
 }
 
 //--------------------------------------------------------------------
-void drawPWR(int count, int pos, const TActionJob &job)
+void drawJob(const TActionJob &job, int count, int idx)
 {
 	if (job.action == '\0') // code is finished so nothing to show
 		return;
 
+	if (job.action == 'c') // if this is the countdown timer
+	{
+		clock(job.seconds / 60, job.seconds % 60, -1, Colors::WHITE, Colors::GREEN);
+		return;
+	}
+
+	// if we can display 1 or more full PWR
+	if (count * 64 <= COLUMNS)
+	{
+		fullPWR(job, idx);
+		return;
+	}
+
 	matrix.startWrite();
 
-	//int background[] = {Colors::RED, Colors::GREEN, Colors::BLUE, Colors::WHITE};
+#if COLUMNS == 64
+	int cols[] = {0, 64, 32, 21, 16};
+#else
+	int cols[] = {0, 64, 64, 42, 32};
+#endif
 
-	int mul[] = {0, 1, 32, 21, 16};
-
-	int x = pos * mul[count] + (count == 3); // offset by 1 if showing 3 windows
-	int w = mul[count];
+	int x = idx * cols[count] + (count == 3); // offset by 1 if showing 3 windows
+	int w = cols[count];
 	int mid = x + w / 2;
 
 	// get the colour
@@ -128,8 +125,8 @@ void drawPWR(int count, int pos, const TActionJob &job)
 	matrix.setTextColor(colour);
 
 	// display action
-	matrix.fillRect(x, 0, w, 32, 0);			// Blank the background
-	matrix.drawRect(x, 0, w, 32, job.Colour()); // draw outline
+	matrix.fillRect(x, 0, w, ROWS, 0);			  // Blank the background
+	matrix.drawRect(x, 0, w, ROWS, job.Colour()); // draw outline
 	matrix.setTextSize(1);
 	matrix.setCursor(x + 3, 3);
 	matrix.print(text);
@@ -170,7 +167,7 @@ void TActionRenderer::Select(const String &key)
 void TActionRenderer::Edit(const String &key)
 {
 	SetJson(ListReadKey(key.c_str()));
-	Intro = NULL;	// stop the intro from playing
+	Intro = NULL; // stop the intro from playing
 }
 //--------------------------------------------------------------------
 String TActionRenderer::GetJson()
@@ -261,32 +258,29 @@ int TActionRenderer::doneJobCount()
 }
 
 //--------------------------------------------------------------------
-void showJobState(TActionJob &job, int count, int pos)
+void showJobState(TActionJob &job, int count, int idx)
 {
-	if (job.isRunning())
+	if (job.isPaused() == false && job.isDone() == false)
 		return;
 
-	int mul[] = {0, 64, 32, 21, 16};
+#if COLUMNS == 64
+	int cols[] = {0, 64, 32, 21, 16};
+#else
+	int cols[] = {0, 64, 64, 42, 32};
+#endif
 
-	pos = pos * mul[count] + mul[count] / 2;
+	int mid = idx * cols[count] + cols[count] / 2;
+
+	if( job.action == 'c')	// if this is the countdown timer 
+		mid = COLUMNS / 2;
 
 	matrix.startWrite();
+	matrix.fillRect(mid - 8, 6, 17, 20, Colors::BLACK);
 
-	if (job.isPaused())
-	{
-		matrix.fillRect(pos - 7, 7, 15, 18, Colors::BLACK);
-
-		matrix.fillRect(pos - 6, 8, 5, 16, Colors::WHITE);
-		matrix.fillRect(pos + 2, 8, 5, 16, Colors::WHITE);
-	}
-
-	if (job.isDone())
-	{
-		matrix.fillRect(pos - 7, 7, 15, 18, Colors::BLACK);
-
-		matrix.fillRect(pos - 6, 8, 5, 16, Colors::GREEN);
-		matrix.fillRect(pos + 2, 8, 5, 16, Colors::GREEN);
-	}
+	int16_t colour = job.isPaused() ? Colors::WHITE : Colors::GREEN;
+	
+	matrix.fillRect(mid - 6, 8, 5, 16, colour);
+	matrix.fillRect(mid + 2, 8, 5, 16, colour);
 
 	matrix.endWrite();
 }
@@ -314,21 +308,7 @@ bool TActionRenderer::Render() // paints the action jobs onto the display
 			if (j.Update())
 			{
 				// Render the job
-				switch (count)
-				{
-				case 1:
-					fullPWR(j);
-					break;
-				case 2:
-					drawPWR(2, idx, j);
-					break;
-				case 3:
-					drawPWR(3, idx, j);
-					break;
-				case 4:
-					drawPWR(4, idx, j);
-					break;
-				}
+				drawJob(j, count, idx);
 				showJobState(j, count, idx); // show a job state overlay if needed
 			}
 			if (j.isActive()) // if the job is not sleeping

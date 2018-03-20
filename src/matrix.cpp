@@ -100,7 +100,8 @@ void Marquee(const char *msg, int16_t colour)
 {
 	matrix.setTextSize(0);
 	matrix.setTextWrap(false);
-	matrix.setFont(&FreeSans12pt7b);
+	//matrix.setFont(&FreeSans12pt7b);
+	matrix.setFont(&Nimbus_Sans_L_Regular_Condensed_32);
 	matrix.setTextColor(colour);
 
 	int16_t x1, y1;
@@ -108,13 +109,15 @@ void Marquee(const char *msg, int16_t colour)
 
 	matrix.getTextBounds((char *)msg, 0, 0, &x1, &y1, &w, &h);
 
+	int y = 25;	// 22 for 12 pt font
+
 	w += 3;
-	int pos = 64;
+	int pos = COLUMNS;
 	while (pos >= -w)
 	{
 		matrix.startWrite();
 		matrix.black();
-		matrix.setCursor(pos, 22);
+		matrix.setCursor(pos, y);
 		matrix.print(msg);
 		pos -= 1;
 		matrix.endWrite();

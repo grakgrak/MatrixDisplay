@@ -8,6 +8,7 @@
         "initializer_list": "cpp",
         "*.tcc": "cpp",
         "functional": "cpp",
-        "istream": "cpp"
+        "istream": "cpp",
+        "limits": "cpp"
     }
 }
