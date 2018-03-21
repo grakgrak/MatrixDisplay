@@ -36,17 +36,18 @@ Please Wait....Configuring and Restarting.)=====";
 //--------------------------------------------------------------------
 boolean isIp(const String &str)
 {
-	for (size_t i = 0; i < str.length(); i++) {
+	for (size_t i = 0; i < str.length(); i++)
+	{
 		int c = str.charAt(i);
 		if (c != '.' && (c < '0' || c > '9'))
 			return false;
-	}	
+	}
 	return true;
 }
 //--------------------------------------------------------------------
 boolean captivePortal(AsyncWebServerRequest *request)
 {
-	if (isIp(request->host()) == false) 
+	if (isIp(request->host()) == false)
 	{
 		Serial.println("Request host: [" + request->host() + "]");
 
@@ -65,20 +66,36 @@ boolean captivePortal(AsyncWebServerRequest *request)
 //--------------------------------------------------------------------
 void handleNotFound(AsyncWebServerRequest *request)
 {
-	if( captivePortal(request))	// redirect if captive portal
+	if (captivePortal(request)) // redirect if captive portal
 		return;
 
 	Serial.print("\nNOT_FOUND: ");
 	switch (request->method())
 	{
-	case HTTP_GET:		Serial.print("GET");		break;
-	case HTTP_POST:		Serial.print("POST");		break;
-	case HTTP_DELETE:	Serial.print("DELETE");		break;
-	case HTTP_PUT:		Serial.print("PUT");		break;
-	case HTTP_PATCH:	Serial.print("PATCH");		break;
-	case HTTP_HEAD:		Serial.print("HEAD");		break;
-	case HTTP_OPTIONS:	Serial.print("OPTIONS");	break;
-	default:			Serial.print("UNKNOWN");	break;
+	case HTTP_GET:
+		Serial.print("GET");
+		break;
+	case HTTP_POST:
+		Serial.print("POST");
+		break;
+	case HTTP_DELETE:
+		Serial.print("DELETE");
+		break;
+	case HTTP_PUT:
+		Serial.print("PUT");
+		break;
+	case HTTP_PATCH:
+		Serial.print("PATCH");
+		break;
+	case HTTP_HEAD:
+		Serial.print("HEAD");
+		break;
+	case HTTP_OPTIONS:
+		Serial.print("OPTIONS");
+		break;
+	default:
+		Serial.print("UNKNOWN");
+		break;
 	}
 	Serial.printf(" http://%s%s\n", request->host().c_str(), request->url().c_str());
 
@@ -163,7 +180,7 @@ void sendGzipResponse(AsyncWebServerRequest *request, const String &mimeType, co
 //--------------------------------------------------------------------
 void handleWebsite(bool softAP)
 {
-	if(softAP)
+	if (softAP)
 	{
 		dnsServer.processNextRequest();
 	}
@@ -182,7 +199,7 @@ void initWebsite(bool softAP)
 	if (softAP)
 	{
 		dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-		if(dnsServer.start(DNS_PORT, "*", WiFi.softAPIP()) == false )
+		if (dnsServer.start(DNS_PORT, "*", WiFi.softAPIP()) == false)
 			Serial.println("Failed to start DNS server");
 	}
 	else
@@ -197,7 +214,7 @@ void initWebsite(bool softAP)
 	});
 
 	server.on("/json/delete", HTTP_GET, [](AsyncWebServerRequest *request) {
-		if( request->hasParam("name"))
+		if (request->hasParam("name"))
 		{
 			String name = request->getParam("name")->value();
 			ListDelete(name.c_str());
@@ -206,34 +223,38 @@ void initWebsite(bool softAP)
 	});
 
 	server.on("/json/load", HTTP_POST, [](AsyncWebServerRequest *request) {
-		if( request->hasParam("schedule", true))
+		if (request->hasParam("schedule", true))
 			ActionRenderer.SetJson(request->getParam("schedule", true)->value());
 		request->send(200, "text/json", "{status:\"ok\"}");
 	});
 
 	server.on("/json/load", HTTP_GET, [](AsyncWebServerRequest *request) {
-		if( request->hasParam("name"))
+		if (request->hasParam("name"))
 		{
 			String name = request->getParam("name")->value();
 			ActionRenderer.Select(name.c_str());
 		}
-		request->send(200, "text/json", ActionRenderer.GetJson());
+		
+		auto response = request->beginResponse(200, "text/json", ActionRenderer.GetJson());
+		response->addHeader("Cache-Control", "no-cache");
+
+		request->send(response);
 	});
 
 	server.on("/json/edit", HTTP_GET, [](AsyncWebServerRequest *request) {
-		if( request->hasParam("name"))
+		if (request->hasParam("name"))
 		{
 			String name = request->getParam("name")->value();
 			ActionRenderer.Edit(name.c_str());
 		}
-		request->send(200, "text/json", ActionRenderer.GetJson());
+		request->send(200, "text/json", "{status:\"ok\"}");
 	});
 
 	server.on("/json/config", HTTP_POST, [](AsyncWebServerRequest *request) {
-		//String config = GetParamDef(request, "config", "");		
+		//String config = GetParamDef(request, "config", "");
 		//SetAdminJson(config);
 
-		if( request->hasParam("config", true))
+		if (request->hasParam("config", true))
 			SetAdminJson(request->getParam("config", true)->value());
 
 		request->send(200, "text/json", "{status:\"ok\"}");
@@ -242,7 +263,36 @@ void initWebsite(bool softAP)
 	server.on("/json/config", HTTP_GET, [](AsyncWebServerRequest *request) {
 		request->send(200, "text/json", GetAdminJson());
 	});
-	
+
+	server.on("/json/scan", HTTP_GET, [](AsyncWebServerRequest *request) {
+		String json = "[";
+		int n = WiFi.scanComplete();
+		if (n == -2)
+			WiFi.scanNetworks(true);
+		else if (n)
+		{
+			for (int i = 0; i < n; ++i)
+			{
+				if (i)
+					json += ",";
+				json += "{";
+				json += "\"rssi\":" + String(WiFi.RSSI(i));
+				json += ",\"ssid\":\"" + WiFi.SSID(i) + "\"";
+				json += ",\"bssid\":\"" + WiFi.BSSIDstr(i) + "\"";
+				json += ",\"channel\":" + String(WiFi.channel(i));
+				json += ",\"secure\":" + String(WiFi.encryptionType(i));
+				//json += ",\"hidden\":" + String(WiFi.isHidden(i) ? "true" : "false");
+				json += "}";
+			}
+			WiFi.scanDelete();
+			if (WiFi.scanComplete() == -2)
+				WiFi.scanNetworks(true);
+		}
+		json += "]";
+		request->send(200, "text/json", json);
+		json = String();
+	});
+
 	server.on("/vue.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
 		sendGzipResponse(request, "text/javascript", vue_min_js_gz, vue_min_js_gz_len);
 	});
@@ -337,8 +387,7 @@ void initWebsite(bool softAP)
 	});
 
 	server.on("/heap", HTTP_GET, [](AsyncWebServerRequest *request) {
-		String text = "High Stack: " + String(uxTaskGetStackHighWaterMark(NULL))
-			+ "\nHeap: " + String(ESP.getFreeHeap());
+		String text = "High Stack: " + String(uxTaskGetStackHighWaterMark(NULL)) + "\nHeap: " + String(ESP.getFreeHeap());
 		request->send(200, "text/plain", text);
 	});
 

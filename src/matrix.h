@@ -3,7 +3,7 @@
 
 #include "Arduino.h"
 #include "Adafruit_GFX.h"
-#include "NimbusSansL32.h"
+#include "Fonts/NimbusSansL32.h"
 #include "Fonts/FreeSans18pt7b.h"
 #include "Fonts/FreeSans12pt7b.h"
 #include "Fonts/FreeSans9pt7b.h"

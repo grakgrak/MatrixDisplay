@@ -70,20 +70,20 @@
 			titles: []
 		},
 		created: function () {
-			fetch( /*"http://192.168.1.244/" +*/ "clock").then(resp => {});
-			this.loadTitles("json/list");
+			fetch("clock").then(resp => {});
+			this.loadTitles();
 		},
 		methods: {
 			del: function (idx) {
-				fetch( /*"http://192.168.1.244/" +*/ "json/delete?name=" + this.titles[idx]).then(resp => {});
-				this.loadTitles("json/list");
+				fetch("json/delete?name=" + this.titles[idx])
+				.then(resp => {this.loadTitles();});
 			},
 			edit: function (idx) {
-				fetch( /*"http://192.168.1.244/" +*/ "json/edit?name=" + this.titles[idx]).then(resp => {});
-				window.location = "edit.html";
+				fetch("json/edit?name=" + this.titles[idx])
+				.then(resp => {window.location = "edit.html";});
 			},
-			loadTitles: function (url) {
-				fetch(/*"http://192.168.1.244/" +*/ url)
+			loadTitles: function () {
+				fetch("json/list")
 					.then(function (resp) {
 						return resp.json();
 					})

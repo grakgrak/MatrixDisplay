@@ -39,6 +39,24 @@
 				</td>
 			</tr>
 		</table>
+
+		<table border="0" cellspacing="11" cellpadding="3" style="width:350px; white-space: nowrap;">
+			<theader>
+				<th>SSID</th>
+				<th>RSSI</th>
+				<th>Channel</th>
+				<th>Secure</th>
+			</theader>
+			<tbody>
+				<tr v-for="(ap,index) in scan">
+					<td>{{ ap.ssid }}</td>
+					<td>{{ ap.rssi }}</td>
+					<td>{{ ap.channel }}</td>
+					<td>{{ ap.secure }}</td>
+				</tr>
+			</tbody>
+		</table>
+
 	</div>
 	<hr>
 	<a href="/restart" class="button">Restart</a>
@@ -46,23 +64,24 @@
 </div>
 
 <script>
-
 	var config = {
 		bright: 2,
 		ssid: "",
 		password: "",
-		ticks: 0
+		ticks: 0,
+		scan: []
 	};
 
 	var app = new Vue({
 		el: '#app',
 		data: config,
 		created: function () {
-			this.loadConfig(/*'http://192.168.1.244/' +*/ "json/config");
+			this.loadConfig();
+			this.loadScan();
 		},
 		methods: {
-			loadConfig: function (url) {
-				fetch(url)
+			loadConfig: function () {
+				fetch("json/config")
 					.then(function (resp) {
 						return resp.json();
 					})
@@ -75,7 +94,20 @@
 					})
 					.catch(function (error) {
 						console.log(error);
+					});
+			},
+			loadScan: function () {
+				fetch("json/scan")
+					.then(function (resp) {
+						return resp.json();
 					})
+					.then(function (j) {
+						console.log(j);
+						config.scan = j;
+					})
+					.catch(function (error) {
+						console.log(error);
+					});
 			},
 			save: function () {
 				config.ticks = Math.round((new Date()).getTime() / 1000);
@@ -83,13 +115,14 @@
 				var formData = new FormData();
 				formData.append("config", JSON.stringify(this.$data));
 
-				fetch(/*'http://192.168.1.244/' +*/ "json/config", 
-				{
-					method: "POST",
-					dataType: "json",
-					body: formData
-				})
-				.catch(function (error) {console.log(error); })
+				fetch( /*'http://192.168.1.244/' +*/ "json/config", {
+						method: "POST",
+						dataType: "json",
+						body: formData
+					})
+					.catch(function (error) {
+						console.log(error);
+					});
 			},
 
 		}
