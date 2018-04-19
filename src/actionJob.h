@@ -2,6 +2,8 @@
 
 #include "matrix.h"
 
+#define	MAX_JOBS	4
+
 class TActionJob
 {
 	enum TJobState
@@ -24,7 +26,7 @@ class TActionJob
 	int limit;
 	int repeat;
 
-	bool Update();
+	bool Update(TActionJob jobs[]);
 	
 	void ToggleRun();
 	void Run();
@@ -50,5 +52,5 @@ class TActionJob
 	const char *_repeatStart;
 	unsigned long _lastTick;
 	int16_t _colour;
-	bool NextAction();
+	bool NextAction(TActionJob jobs[]);
 };

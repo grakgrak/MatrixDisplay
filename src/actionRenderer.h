@@ -24,7 +24,7 @@ class TActionRenderer
   private:
 	String _intro = ""; // intro command string
 	String _outro = ""; // outro command string
-	TActionJob jobs[4];
+	TActionJob jobs[MAX_JOBS];
 
 	int activeJobCount();
 	int doneJobCount();

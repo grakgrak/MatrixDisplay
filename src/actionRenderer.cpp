@@ -44,7 +44,7 @@ void fullPWR(const TActionJob &job, int idx)
 	matrix.setFont(NULL);
 	matrix.setTextWrap(false);
 	matrix.setTextColor(colour);
-	matrix.drawRect(x, 0, 64, ROWS, colour);
+	matrix.drawRect(x, 0, 64, ROWS, job.Colour());
 	matrix.setTextSize(1);
 	matrix.setCursor(x + 4, 4);
 	matrix.print(text);
@@ -132,7 +132,7 @@ void drawJob(const TActionJob &job, int count, int idx)
 	matrix.print(text);
 
 	// display seconds
-	if (count > 2)
+	if (count > 3)
 	{
 		matrix.setTextSize(1);
 		matrix.setCursor((job.seconds < 10) ? mid - 2 : mid - 5, 15);
@@ -209,6 +209,11 @@ void TActionRenderer::SetJson(const String &json)
 	}
 	else
 		Serial.println("failed to parse json: " + json);
+
+	// clear the display 
+	matrix.startWrite();
+	matrix.black();
+	matrix.endWrite();
 }
 //--------------------------------------------------------------------
 void TActionRenderer::StartAll()
@@ -275,13 +280,18 @@ void showJobState(TActionJob &job, int count, int idx)
 		mid = COLUMNS / 2;
 
 	matrix.startWrite();
-	matrix.fillRect(mid - 8, 6, 17, 20, Colors::BLACK);
 
-	int16_t colour = job.isPaused() ? Colors::WHITE : Colors::GREEN;
-	
-	matrix.fillRect(mid - 6, 8, 5, 16, colour);
-	matrix.fillRect(mid + 2, 8, 5, 16, colour);
-
+	if( job.isPaused())
+	{
+		matrix.fillRect(mid - 8, 6, 17, 20, Colors::BLACK);
+		matrix.fillRect(mid - 6, 8, 5, 16, Colors::WHITE);
+		matrix.fillRect(mid + 2, 8, 5, 16, Colors::WHITE);
+	}
+	else
+	{
+		// blank the box
+		matrix.fillRect(idx * cols[count] + 1, 1, cols[count] - 2, 32 - 2, Colors::BLACK);
+	}
 	matrix.endWrite();
 }
 //--------------------------------------------------------------------
@@ -305,7 +315,7 @@ bool TActionRenderer::Render() // paints the action jobs onto the display
 		{
 			TActionJob &j = jobs[i];
 
-			if (j.Update())
+			if (j.Update(jobs))
 			{
 				// Render the job
 				drawJob(j, count, idx);

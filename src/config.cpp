@@ -208,6 +208,8 @@ String ListReadKey( const char *key)
 void ListIoU( const char *key, const String &data)
 {
 	String k(key);
+
+	k = k.substring(0,15);	// limited to 15 chars in the key
 	k.trim();
 
 	// check that the value has changed

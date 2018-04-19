@@ -28,8 +28,8 @@ void TActionJob::Set(const char *code, int16_t colour)
 	_ptr = _code.c_str();
 	_state = (*_ptr == '\0') ? SLEEPING : READY;
 
-	if( isActive())
-		NextAction();	// init the properties
+	if (isActive())
+		NextAction(NULL); // init the properties
 }
 //--------------------------------------------------------------------
 void TActionJob::SetState(TJobState state)
@@ -73,28 +73,40 @@ void TActionJob::Reset()
 	Set(_code.c_str(), _colour);
 }
 //--------------------------------------------------------------------
-bool TActionJob::NextAction()
+bool TActionJob::NextAction(TActionJob jobs[])
 {
-	if(_ptr == NULL)
+	if (_ptr == NULL)
 		return false;
-		
-	while(true)
+
+	int idx = 0;
+	while (true)
 	{
 		action = *_ptr++; // set the current action to perform
 
 		switch (tolower(action))
 		{
-		case 'b':	// beep seconds
+		case 'x':
+			_ptr = getValue(_ptr, idx);
+			if( *_ptr != '\0')	// if we are not at the end of the command string
+				Pause();
+			if ((jobs != NULL) && (idx > 0) && (idx <= MAX_JOBS))
+			{
+				if( &jobs[idx - 1] != this)
+					jobs[idx - 1].Run();
+			}
+			return true;
+		case 'b': // beep seconds
 			_ptr = getValue(_ptr, beepSeconds);
 			break;
 		case 'r': // rest - special case
 			_ptr = getValue(_ptr, seconds);
-			if( limit > 0 && loop == limit)	// ignore the last rest if in a loop
+			if (limit > 0 && loop == limit) // ignore the last rest if in a loop
 			{
-				while( *_ptr == ' ')	// skip spaces
+				seconds = 0;		 // reset seconds as we are ignoreing the last rest
+				while (*_ptr == ' ') // skip spaces
 					++_ptr;
 
-				if( *_ptr == ')' || *_ptr == ']')
+				if (*_ptr == ')' || *_ptr == ']')
 					break;
 			}
 			return true;
@@ -106,7 +118,7 @@ bool TActionJob::NextAction()
 		case '[': // repeat
 			_ptr = getValue(_ptr, repeat);
 			_repeatStart = _ptr;
-			break;		
+			break;
 		case ']': // end repeat
 			if ((_repeatStart != NULL) && (--repeat > 0))
 			{
@@ -126,6 +138,7 @@ bool TActionJob::NextAction()
 				_ptr = _loopStart; // reset to start of loop
 				break;
 			}
+			loop = 0;
 			limit = 0;
 			_loopStart = NULL;
 			break;
@@ -139,7 +152,7 @@ bool TActionJob::NextAction()
 	}
 }
 //--------------------------------------------------------------------
-bool TActionJob::Update()
+bool TActionJob::Update(TActionJob jobs[])
 {
 	if (State() == SLEEPING) // nothing to do if sleeping
 		return false;
@@ -154,13 +167,13 @@ bool TActionJob::Update()
 
 	--seconds;
 
-	if(seconds >= 0 && seconds < beepSeconds)
+	if (seconds >= 0 && seconds < beepSeconds)
 		Beep((seconds == 0) ? 200 : 50);
 
 	// still working on the current action
-	if ( seconds >= 0 )
+	if (seconds >= 0)
 		return true;
 
 	// get the next action from the command string
-	return NextAction();
+	return NextAction(jobs);
 }

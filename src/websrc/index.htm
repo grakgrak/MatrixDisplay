@@ -1,4 +1,4 @@
-<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.min.js"></script>
+<script src="vue.min.js"></script>
 <link rel="stylesheet" href="picnic.css">
 <link rel="stylesheet" href="style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -63,6 +63,19 @@
 		}
 	})
 
+	function getTicks() { //t is the date object to check, returns true if daylight saving time is in effect.
+		var t = new Date();
+		var ticks = t.getTime() / 1000;
+
+		// check to see if DST is active
+		var jan = new Date(t.getFullYear(), 0, 1);
+		var jul = new Date(t.getFullYear(), 6, 1);
+
+		if( Math.min(jan.getTimezoneOffset(), jul.getTimezoneOffset()) == t.getTimezoneOffset())
+			return ticks + 60 * 60;	// add on a hour
+
+		return ticks; 
+	};
 
 	var app = new Vue({
 		el: '#app',
@@ -70,7 +83,7 @@
 			titles: []
 		},
 		created: function () {
-			fetch("clock").then(resp => {});
+			fetch("clock?ticks=" + getTicks()).then(resp => {});
 			this.loadTitles();
 		},
 		methods: {

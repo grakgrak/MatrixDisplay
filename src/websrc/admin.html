@@ -1,4 +1,4 @@
-<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.min.js"></script>
+<script src="vue.min.js"></script>
 <link rel="stylesheet" href="picnic.css">
 <link rel="stylesheet" href="style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,19 +11,19 @@
 			<tr>
 				<td align="right">SSID:</td>
 				<td>
-					<input v-model="ssid">
+					<input v-model="config.ssid">
 				</td>
 			</tr>
 			<tr>
 				<td align="right">Password:</td>
 				<td>
-					<input v-model="password">
+					<input v-model="config.password">
 				</td>
 			</tr>
 			<tr>
 				<td align="right">Brightness:</td>
 				<td>
-					<select v-model="bright">
+					<select v-model="config.bright">
 						<option value="2">2</option>
 						<option value="4">4</option>
 						<option value="6">6</option>
@@ -31,7 +31,7 @@
 						<option value="10">10</option>
 					</select>
 				</td>
-				<input type="hidden" v-model="ticks">
+				<input type="hidden" v-model="config.ticks">
 			</tr>
 			<tr>
 				<td colspan="2" align="center">
@@ -68,13 +68,29 @@
 		bright: 2,
 		ssid: "",
 		password: "",
-		ticks: 0,
-		scan: []
+		ticks: 0
+	};
+
+	function getTicks() { //t is the date object to check, returns true if daylight saving time is in effect.
+		var t = new Date();
+		var ticks = t.getTime() / 1000;
+
+		// check to see if DST is active
+		var jan = new Date(t.getFullYear(), 0, 1);
+		var jul = new Date(t.getFullYear(), 6, 1);
+
+		if( Math.min(jan.getTimezoneOffset(), jul.getTimezoneOffset()) == t.getTimezoneOffset())
+			return ticks + 60 * 60;	// add on a hour
+
+		return ticks; 
 	};
 
 	var app = new Vue({
 		el: '#app',
-		data: config,
+		data: {
+			config,
+			scan: []
+		},
 		created: function () {
 			this.loadConfig();
 			this.loadScan();
@@ -103,17 +119,19 @@
 					})
 					.then(function (j) {
 						console.log(j);
-						config.scan = j;
+						scan = [];
+						for (i = 0; i < j.length; ++i)
+							scan.push(j[i]);
 					})
 					.catch(function (error) {
 						console.log(error);
 					});
 			},
 			save: function () {
-				config.ticks = Math.round((new Date()).getTime() / 1000);
+				config.ticks = getTicks();
 
 				var formData = new FormData();
-				formData.append("config", JSON.stringify(this.$data));
+				formData.append("config", JSON.stringify(this.$data.config));
 
 				fetch( /*'http://192.168.1.244/' +*/ "json/config", {
 						method: "POST",

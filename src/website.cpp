@@ -4,6 +4,7 @@
 #include <DNSServer.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <TimeLib.h>
 #include "actionRenderer.h"
 #include "website/index.htm.gz.h"
 #include "website/admin.html.gz.h"
@@ -294,7 +295,7 @@ void initWebsite(bool softAP)
 	});
 
 	server.on("/vue.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-		sendGzipResponse(request, "text/javascript", vue_min_js_gz, vue_min_js_gz_len);
+		sendGzipResponse(request, "application/javascript", vue_min_js_gz, vue_min_js_gz_len);
 	});
 	server.on("/picnic.css", HTTP_GET, [](AsyncWebServerRequest *request) {
 		sendGzipResponse(request, "text/css", picnic_css_gz, picnic_css_gz_len);
@@ -334,7 +335,15 @@ void initWebsite(bool softAP)
 		esp_restart();
 	});
 
-	server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request) {
+	server.on("/clock", HTTP_GET, [softAP](AsyncWebServerRequest *request) {
+		if( request->hasParam("ticks"))
+		{
+			if(softAP)
+			{
+				String ticks = request->getParam("ticks")->value();
+				setTime(atol(ticks.c_str()));
+			}
+		}
 		ActionRenderer.SetJson("{}");
 		request->send(204);
 	});
