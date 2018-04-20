@@ -179,9 +179,9 @@ void init_OTA(bool softAP)
 //--------------------------------------------------------------------
 void Beep(int ms)
 {
-	digitalWrite(BEEPER_PIN, HIGH);
-	delay(ms);
 	digitalWrite(BEEPER_PIN, LOW);
+	delay(ms);
+	digitalWrite(BEEPER_PIN, HIGH);
 }
 //--------------------------------------------------------------------
 void setup()
@@ -192,7 +192,7 @@ void setup()
 	Serial.println("Setup");
 
 	pinMode(BEEPER_PIN, OUTPUT);	// beeper pin
-	digitalWrite(BEEPER_PIN, LOW);
+	digitalWrite(BEEPER_PIN, HIGH);
 
 	init_config();
 	initMatrix();
