@@ -120,7 +120,7 @@ void Marquee(const char *msg, int16_t colour)
 		matrix.setCursor(pos, y);
 		matrix.print(msg);
 		pos -= 1;
-		matrix.endWrite();
+		matrixEndWrite();
 		vTaskDelay(15);
 	}
 }
@@ -145,5 +145,18 @@ void initMatrix()
 
 	matrix.black();
 	matrix.setBrightness(GetCfgInt("Brightness", 2));
+}
+//--------------------------------------------------------------------
+int _writeCounter = 0;
+void matrixStartWrite()
+{
+	if( _writeCounter++ == 0)
+		matrix.startWrite();
+}
+//--------------------------------------------------------------------
+void matrixEndWrite()
+{
+	if(--_writeCounter == 0)
+		matrix.endWrite();
 }
 

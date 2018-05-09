@@ -12,7 +12,7 @@ void fullPWR(const TActionJob &job, int idx)
 	if (job.action == '\0')
 		return;
 
-	matrix.startWrite();
+	matrixStartWrite();
 
 	int16_t colour;
 	const char *text;
@@ -67,7 +67,7 @@ void fullPWR(const TActionJob &job, int idx)
 		matrix.setCursor(x + 38, 8);
 	matrix.print(job.seconds);
 
-	matrix.endWrite();
+	matrixEndWrite();
 }
 
 //--------------------------------------------------------------------
@@ -89,7 +89,7 @@ void drawJob(const TActionJob &job, int count, int idx)
 		return;
 	}
 
-	matrix.startWrite();
+	matrixStartWrite();
 
 #if COLUMNS == 64
 	int cols[] = {0, 64, 32, 21, 16};
@@ -155,7 +155,7 @@ void drawJob(const TActionJob &job, int count, int idx)
 
 	matrix.print(job.seconds);
 
-	matrix.endWrite();
+	matrixEndWrite();
 }
 
 //--------------------------------------------------------------------
@@ -211,15 +211,15 @@ void TActionRenderer::SetJson(const String &json)
 		Serial.println("failed to parse json: " + json);
 
 	// clear the display 
-	matrix.startWrite();
+	matrixStartWrite();
 	matrix.black();
-	matrix.endWrite();
+	matrixEndWrite();
 }
 //--------------------------------------------------------------------
 void TActionRenderer::StartAll()
 {
 	for (int i = 0; i < 4; ++i)
-		jobs[i].Run();
+		jobs[i].Run(NULL);
 }
 //--------------------------------------------------------------------
 void TActionRenderer::PauseAll()
@@ -279,20 +279,18 @@ void showJobState(TActionJob &job, int count, int idx)
 	if( job.action == 'c')	// if this is the countdown timer 
 		mid = COLUMNS / 2;
 
-	matrix.startWrite();
+	matrixStartWrite();
+
+	// blank the box
+	matrix.fillRect(idx * cols[count] + 1, 1, cols[count] - 2, 32 - 2, Colors::BLACK);
 
 	if( job.isPaused())
 	{
-		matrix.fillRect(mid - 8, 6, 17, 20, Colors::BLACK);
 		matrix.fillRect(mid - 6, 8, 5, 16, Colors::WHITE);
 		matrix.fillRect(mid + 2, 8, 5, 16, Colors::WHITE);
 	}
-	else
-	{
-		// blank the box
-		matrix.fillRect(idx * cols[count] + 1, 1, cols[count] - 2, 32 - 2, Colors::BLACK);
-	}
-	matrix.endWrite();
+
+	matrixEndWrite();
 }
 //--------------------------------------------------------------------
 bool TActionRenderer::Render() // paints the action jobs onto the display
@@ -311,6 +309,7 @@ bool TActionRenderer::Render() // paints the action jobs onto the display
 	{
 		// update all the jobs
 		int idx = 0;
+		matrixStartWrite();
 		for (int i = 0; i < 4; ++i)
 		{
 			TActionJob &j = jobs[i];
@@ -324,6 +323,7 @@ bool TActionRenderer::Render() // paints the action jobs onto the display
 			if (j.isActive()) // if the job is not sleeping
 				++idx;
 		}
+		matrixEndWrite();
 
 		if (activeJobCount() == doneJobCount()) // if all jobs finished
 		{

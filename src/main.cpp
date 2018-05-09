@@ -10,7 +10,7 @@
 #include <ArduinoOTA.h> // https://github.com/esp8266/Arduino/blob/master/libraries/ArduinoOTA/ArduinoOTA.h
 
 #define BEEPER_PIN 33
-#define WIFI_CONNECT_TIMEOUT 20000
+#define WIFI_CONNECT_TIMEOUT 15000
 
 #define HOSTNAME "Matrix64"
 #define SOFT_AP_PASSWORD "taketheredpill"
@@ -39,26 +39,19 @@ bool isWiFiConnected(int timeout)
 }
 
 //--------------------------------------------------------------------
-void initWifi()
+bool WiFiConnect(const String &ssid, const String &passwd, int timeout)
 {
-	Serial.print("InitWiFi: ");
-
-	String ssid = GetCfgString("SSID", "");
-	String passwd = GetCfgString("PASSWORD", "");
-	String hostname = GetCfgString("HostName", HOSTNAME);
-
-	Serial.println(ssid);
-	Serial.println(passwd);
-
 	if(ssid != "")	// try to connect to the router
 	{
 		WiFi.begin(ssid.c_str(), passwd.c_str());
+	
+		String hostname = GetCfgString("HostName", HOSTNAME);
 		WiFi.setHostname(hostname.c_str());
 
 		unsigned long start = millis();
 		while (WiFi.status() != WL_CONNECTED)
 		{
-			if ((millis() - start) > WIFI_CONNECT_TIMEOUT) // allow time to connect to WiFi - if not then restart
+			if ((millis() - start) > timeout) // allow time to connect to WiFi - if not then restart
 				break;
 			delay(750);
 			Serial.print(".");
@@ -70,9 +63,27 @@ void initWifi()
 			Serial.println("\nWiFi Connected - " + ip);
 
 			Marquee(ip.c_str(), Colors::BLUE);
-			return;
+			return true;
 		}
 	}
+	return false;
+}
+
+//--------------------------------------------------------------------
+void initWifi()
+{
+	Serial.print("InitWiFi: ");
+
+	String ssid = GetCfgString("SSID", "");
+	String passwd = GetCfgString("PASSWORD", "");
+
+	Serial.println(ssid);
+	Serial.println(passwd);
+
+	if( WiFiConnect(ssid, passwd, WIFI_CONNECT_TIMEOUT))
+		return;
+	if( WiFiConnect("BT-R2Z5", "RNfmYVLu6HUX", 5000))
+		return;
 
 	// ssid is not set or connection attempt timed out
 	softAP = true;

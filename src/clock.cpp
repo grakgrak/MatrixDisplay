@@ -59,7 +59,7 @@ void drawSeconds(int secs, int16_t background)
 //--------------------------------------------------------------------
 void clock(int hour, int minute, int sec, int16_t foreground, int16_t background)
 {
-	matrix.startWrite();
+	matrixStartWrite();
 
 	matrix.setTextSize(0);
 	matrix.setFont(&FreeSans18pt7b);
@@ -68,31 +68,42 @@ void clock(int hour, int minute, int sec, int16_t foreground, int16_t background
 
 	int mid = COLUMNS / 2;
 	int y = 27;
-	if(sec >=0 && sec < 60)
-		drawSeconds(sec + 1, background);
+	//if(sec >=0 && sec < 60)
+	//	drawSeconds(sec + 1, background);
 
 	// blink the colon between digit pairs
 	if (sec % 2 != 0)
 	{
-		matrix.drawRect(mid - 1, 11, 2, 2, background);
-		matrix.drawRect(mid - 1, 18, 2, 2, background);
+		matrix.drawRect(mid - 23, 11, 2, 2, background);
+		matrix.drawRect(mid - 23, 18, 2, 2, background);
+
+		matrix.drawRect(mid + 19, 11, 2, 2, background);
+		matrix.drawRect(mid + 19, 18, 2, 2, background);
 	}
 	
 	String mins(minute);
 	String hours(hour);
+	String secs(sec);
 
 	if (mins.length() == 1)
 		mins = "0" + mins;
 	if (hours.length() == 1)
 		hours = "0" + hours;
+	if (secs.length() == 1)
+		secs = "0" + secs;
 
-	matrix.setCursor(mid - 40, y);
+	matrix.setCursor(mid - 62, y);	//40
 	matrix.print(hours);
 
-	matrix.setCursor(mid + 2, y);
+	matrix.setCursor(mid - 20, y);
 	matrix.print(mins);
 
-	matrix.endWrite();
+	matrix.setTextColor(background);
+
+	matrix.setCursor(mid + 22, y);
+	matrix.print(secs);
+
+	matrixEndWrite();
 }
 //--------------------------------------------------------------------
 void showTime(int16_t foreground, int16_t background)

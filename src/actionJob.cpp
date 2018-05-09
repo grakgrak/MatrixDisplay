@@ -22,6 +22,7 @@ void TActionJob::Set(const char *code, int16_t colour)
 	_lastTick = 0;
 	_loopStart = NULL;
 	_repeatStart = NULL;
+	_caller = NULL;
 
 	_colour = colour;
 	_code = (code == NULL) ? "" : code;
@@ -47,8 +48,9 @@ void TActionJob::ToggleRun()
 	SetState((State() == RUN) ? PAUSE : RUN);
 }
 //--------------------------------------------------------------------
-void TActionJob::Run()
+void TActionJob::Run(TActionJob *caller)
 {
+	_caller = caller;
 	if (State() == SLEEPING || State() == DONE)
 		return;
 
@@ -87,12 +89,12 @@ bool TActionJob::NextAction(TActionJob jobs[])
 		{
 		case 'x':
 			_ptr = getValue(_ptr, idx);
-			if( *_ptr != '\0')	// if we are not at the end of the command string
+			if (*_ptr != '\0') // if we are not at the end of the command string
 				Pause();
 			if ((jobs != NULL) && (idx > 0) && (idx <= MAX_JOBS))
 			{
-				if( &jobs[idx - 1] != this)
-					jobs[idx - 1].Run();
+				if (&jobs[idx - 1] != this)
+					jobs[idx - 1].Run(this);
 			}
 			return true;
 		case 'b': // beep seconds
@@ -145,6 +147,9 @@ bool TActionJob::NextAction(TActionJob jobs[])
 		case '\0': // end of command
 			_ptr = NULL;
 			SetState(DONE);
+			if (_caller != NULL)	// return control to the caller job
+				_caller->Run(NULL);
+			_caller = NULL;
 			return true;
 		default: // ignore anything we dont recognise
 			break;

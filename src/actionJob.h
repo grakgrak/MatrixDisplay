@@ -29,7 +29,7 @@ class TActionJob
 	bool Update(TActionJob jobs[]);
 	
 	void ToggleRun();
-	void Run();
+	void Run(TActionJob *caller);
 	void Pause();
 	void Reset();
 	void Cancel(); 
@@ -45,6 +45,7 @@ class TActionJob
 	inline int16_t Colour() const	{return _colour;}
 	inline String Code()	{ return _code;}
   private:
+	TActionJob *_caller;
 	TJobState _state = SLEEPING; // Pause, run, done
 	String _code = "";
 	const char *_ptr;
