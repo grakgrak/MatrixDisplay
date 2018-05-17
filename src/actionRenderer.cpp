@@ -78,7 +78,7 @@ void drawJob(const TActionJob &job, int count, int idx)
 
 	if (job.action == 'c') // if this is the countdown timer
 	{
-		clock(job.seconds / 60, job.seconds % 60, -1, Colors::WHITE, Colors::GREEN);
+		clockMMSS(job.seconds / 60, job.seconds % 60, Colors::WHITE, Colors::GREEN);
 		return;
 	}
 
@@ -263,10 +263,10 @@ int TActionRenderer::doneJobCount()
 }
 
 //--------------------------------------------------------------------
-void showJobState(TActionJob &job, int count, int idx)
+bool showJobState(TActionJob &job, int count, int idx)
 {
 	if (job.isPaused() == false && job.isDone() == false)
-		return;
+		return true;
 
 #if COLUMNS == 64
 	int cols[] = {0, 64, 32, 21, 16};
@@ -274,15 +274,18 @@ void showJobState(TActionJob &job, int count, int idx)
 	int cols[] = {0, 64, 64, 42, 32};
 #endif
 
-	int mid = idx * cols[count] + cols[count] / 2;
-
-	if( job.action == 'c')	// if this is the countdown timer 
-		mid = COLUMNS / 2;
-
 	matrixStartWrite();
 
+	int mid = idx * cols[count] + cols[count] / 2;
+
 	// blank the box
-	matrix.fillRect(idx * cols[count] + 1, 1, cols[count] - 2, 32 - 2, Colors::BLACK);
+	if( job.action == 'c')	// if this is the countdown timer 
+	{
+		mid = COLUMNS / 2;
+		matrix.fillRect(1, 1, COLUMNS - 2, 32 - 2, Colors::BLACK);
+	}
+	else
+		matrix.fillRect(idx * cols[count] + 1, 1, cols[count] - 2, 32 - 2, Colors::BLACK);
 
 	if( job.isPaused())
 	{
@@ -291,6 +294,8 @@ void showJobState(TActionJob &job, int count, int idx)
 	}
 
 	matrixEndWrite();
+	
+	return false;
 }
 //--------------------------------------------------------------------
 bool TActionRenderer::Render() // paints the action jobs onto the display
@@ -317,8 +322,8 @@ bool TActionRenderer::Render() // paints the action jobs onto the display
 			if (j.Update(jobs))
 			{
 				// Render the job
-				drawJob(j, count, idx);
-				showJobState(j, count, idx); // show a job state overlay if needed
+				if(showJobState(j, count, idx)) // show a job state overlay if needed
+					drawJob(j, count, idx);
 			}
 			if (j.isActive()) // if the job is not sleeping
 				++idx;

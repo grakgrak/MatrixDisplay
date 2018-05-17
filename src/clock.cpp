@@ -57,7 +57,7 @@ void drawSeconds(int secs, int16_t background)
 }
 
 //--------------------------------------------------------------------
-void clock(int hour, int minute, int sec, int16_t foreground, int16_t background)
+void clockHHMMSS(int hour, int minute, int sec, int16_t foreground, int16_t background)
 {
 	matrixStartWrite();
 
@@ -106,9 +106,45 @@ void clock(int hour, int minute, int sec, int16_t foreground, int16_t background
 	matrixEndWrite();
 }
 //--------------------------------------------------------------------
+void clockMMSS(int minute, int sec, int16_t foreground, int16_t background)
+{
+	matrix.startWrite();
+
+	matrix.setTextSize(0);
+	matrix.setFont(&FreeSans18pt7b);
+	matrix.setTextColor(foreground);
+	matrix.black();
+
+	int mid = COLUMNS / 2;
+	int y = 27;
+
+	// blink the colon between digit pairs
+	if (sec % 2 != 0)
+	{
+		matrix.drawRect(mid - 1, 11, 2, 2, background);
+		matrix.drawRect(mid - 1, 18, 2, 2, background);
+	}
+	
+	String mins(minute);
+	String secs(sec);
+
+	if (mins.length() == 1)
+		mins = "0" + mins;
+	if (secs.length() == 1)
+		secs = "0" + secs;
+
+	matrix.setCursor(mid - 40, y);
+	matrix.print(mins);
+
+	matrix.setCursor(mid + 2, y);
+	matrix.print(secs);
+
+	matrix.endWrite();
+}
+//--------------------------------------------------------------------
 void showTime(int16_t foreground, int16_t background)
 {
-	clock( hour(_now), minute(_now), second(_now), foreground, background);
+	clockHHMMSS( hour(_now), minute(_now), second(_now), foreground, background);
 }
 
 //--------------------------------------------------------------------
