@@ -80,9 +80,9 @@ void initWifi()
 	Serial.println(ssid);
 	Serial.println(passwd);
 
-	if( WiFiConnect(ssid, passwd, WIFI_CONNECT_TIMEOUT))
-		return;
 	if( WiFiConnect("BT-R2Z5", "RNfmYVLu6HUX", 5000))
+		return;
+	if( WiFiConnect(ssid, passwd, WIFI_CONNECT_TIMEOUT))
 		return;
 
 	// ssid is not set or connection attempt timed out

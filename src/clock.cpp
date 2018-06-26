@@ -18,6 +18,7 @@ time_t _now;	// the current time
 #define FULL_WIDTH	127
 #define HALF_WIDTH	63
 #endif
+
 //--------------------------------------------------------------------
 void drawSeconds(int secs, int16_t background)
 {
@@ -106,41 +107,110 @@ void clockHHMMSS(int hour, int minute, int sec, int16_t foreground, int16_t back
 	matrixEndWrite();
 }
 //--------------------------------------------------------------------
-void clockMMSS(int minute, int sec, int16_t foreground, int16_t background)
+// void clockMMSS(int minute, int sec, int16_t foreground, int16_t background)
+// {
+// 	matrix.startWrite();
+
+// 	matrix.setTextSize(0);
+// 	matrix.setFont(&FreeSans18pt7b);
+// 	matrix.setTextColor(foreground);
+// 	matrix.black();
+
+// 	int mid = COLUMNS / 2;
+// 	int y = 27;
+
+// 	// blink the colon between digit pairs
+// 	if (sec % 2 != 0)
+// 	{
+// 		matrix.drawRect(mid - 1, 11, 2, 2, background);
+// 		matrix.drawRect(mid - 1, 18, 2, 2, background);
+// 	}
+	
+// 	String mins(minute);
+// 	String secs(sec);
+
+// 	if (mins.length() == 1)
+// 		mins = "0" + mins;
+// 	if (secs.length() == 1)
+// 		secs = "0" + secs;
+
+// 	matrix.setCursor(mid - 40, y);
+// 	matrix.print(mins);
+
+// 	matrix.setCursor(mid + 2, y);
+// 	matrix.print(secs);
+
+// 	matrix.endWrite();
+// }
+
+//--------------------------------------------------------------------
+void MMSS( const String &mins, const String &secs, int mid, int y, bool blink, int pairWidth)
+{
+	// blink the colon between digit pairs
+	if (blink)
+	{
+		matrix.drawRect(mid - 1, 11, 2, 2, Colors::GREEN);
+		matrix.drawRect(mid - 1, 18, 2, 2, Colors::GREEN);
+	}
+
+	matrix.setCursor(mid - (pairWidth + 2), y);
+	matrix.print(mins);
+
+	matrix.setCursor(mid + 2, y);
+	matrix.print(secs);
+}
+//--------------------------------------------------------------------
+void clockMMSS(int minute, int sec, int count, int idx, int16_t colour)
 {
 	matrix.startWrite();
 
-	matrix.setTextSize(0);
-	matrix.setFont(&FreeSans18pt7b);
-	matrix.setTextColor(foreground);
-	matrix.black();
-
-	int mid = COLUMNS / 2;
-	int y = 27;
-
-	// blink the colon between digit pairs
-	if (sec % 2 != 0)
-	{
-		matrix.drawRect(mid - 1, 11, 2, 2, background);
-		matrix.drawRect(mid - 1, 18, 2, 2, background);
-	}
-	
 	String mins(minute);
 	String secs(sec);
+
+	matrix.setTextColor(Colors::WHITE);
 
 	if (mins.length() == 1)
 		mins = "0" + mins;
 	if (secs.length() == 1)
 		secs = "0" + secs;
 
-	matrix.setCursor(mid - 40, y);
-	matrix.print(mins);
+	int w = COLUMNS / count;
+	if( count == 1)
+	{
+		matrix.setTextSize(0);
+		matrix.setFont(&FreeSans18pt7b);
+		matrix.black();
+		MMSS(mins, secs, w / 2, 27, (sec % 2 != 0), 38);	// width of number pair
+	}
+	if(count == 2)
+	{
+		matrix.setFont(NULL);
+		matrix.setTextSize(2);
 
-	matrix.setCursor(mid + 2, y);
-	matrix.print(secs);
+		int x = w * idx;
+		matrix.fillRect(x, 0, w, ROWS, 0); // Blank the background
+		matrix.drawRect(x, 0, w, ROWS, colour);
+
+		int mid = x + (w / 2);
+		MMSS(mins, secs, mid, 8, (sec % 2 != 0), 24);
+	}
+	if(count == 3 || count == 4)
+	{
+		matrix.setFont(NULL);
+		matrix.setTextSize(1);
+		int x = w * idx;
+		matrix.fillRect(x, 0, w, ROWS, 0); // Blank the background
+		matrix.drawRect(x, 0, w, ROWS, colour);
+
+		int mid = x + (w / 2);
+		MMSS(mins, secs, mid, 12, (sec % 2 != 0), 12);
+	}
 
 	matrix.endWrite();
 }
+
+
+
 //--------------------------------------------------------------------
 void showTime(int16_t foreground, int16_t background)
 {

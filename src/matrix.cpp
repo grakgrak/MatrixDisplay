@@ -121,7 +121,7 @@ void Marquee(const char *msg, int16_t colour)
 		matrix.print(msg);
 		pos -= 1;
 		matrixEndWrite();
-		vTaskDelay(15);
+		vTaskDelay(10);
 	}
 }
 

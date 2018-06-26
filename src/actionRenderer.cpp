@@ -51,11 +51,11 @@ void fullPWR(const TActionJob &job, int idx)
 
 	if (job.loop > 0) // display cycle of limit
 	{
-		matrix.setCursor(x + 4, 20);
+		matrix.setCursor(x + 4, 23);
 		matrix.print(job.loop);
-		matrix.setCursor(matrix.getCursorX() + 1, 20);
+		matrix.setCursor(matrix.getCursorX() + 1, 23);
 		matrix.print("of");
-		matrix.setCursor(matrix.getCursorX() + 1, 20);
+		matrix.setCursor(matrix.getCursorX() + 1, 23);
 		matrix.print(job.limit);
 	}
 
@@ -64,7 +64,11 @@ void fullPWR(const TActionJob &job, int idx)
 	if (job.seconds < 10)
 		matrix.setCursor(x + 44, 8);
 	else
-		matrix.setCursor(x + 38, 8);
+		if( job.seconds < 100)
+			matrix.setCursor(x + 38, 8);
+		else
+			matrix.setCursor(x + 28, 8);
+
 	matrix.print(job.seconds);
 
 	matrixEndWrite();
@@ -78,7 +82,7 @@ void drawJob(const TActionJob &job, int count, int idx)
 
 	if (job.action == 'c') // if this is the countdown timer
 	{
-		clockMMSS(job.seconds / 60, job.seconds % 60, Colors::WHITE, Colors::GREEN);
+		clockMMSS(job.seconds / 60, job.seconds % 60, count, idx, job.Colour());
 		return;
 	}
 
@@ -278,14 +282,14 @@ bool showJobState(TActionJob &job, int count, int idx)
 
 	int mid = idx * cols[count] + cols[count] / 2;
 
+	matrix.fillRect(idx * cols[count] + 1, 1, cols[count] - 2, 32 - 2, Colors::BLACK);
+
 	// blank the box
-	if( job.action == 'c')	// if this is the countdown timer 
+	if( job.action == 'c' && count == 1)	// if this is the countdown timer and its using the whole display
 	{
 		mid = COLUMNS / 2;
-		matrix.fillRect(1, 1, COLUMNS - 2, 32 - 2, Colors::BLACK);
+		matrix.black();
 	}
-	else
-		matrix.fillRect(idx * cols[count] + 1, 1, cols[count] - 2, 32 - 2, Colors::BLACK);
 
 	if( job.isPaused())
 	{
