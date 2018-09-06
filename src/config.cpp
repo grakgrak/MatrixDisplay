@@ -102,6 +102,7 @@ void init_config()
 		Serial.println("Failed to open the LIST nvs.");
 		return;
 	}
+	Serial.println("NVS init.");
 }
 
 // Find the namespace ID for the namespace passed as parameter.

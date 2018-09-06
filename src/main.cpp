@@ -62,7 +62,8 @@ bool WiFiConnect(const String &ssid, const String &passwd, int timeout)
 			String ip = WiFi.localIP().toString();
 			Serial.println("\nWiFi Connected - " + ip);
 
-			Marquee(ip.c_str(), Colors::BLUE);
+			Marquee("WiFi", Colors::GREEN);
+			Marquee(ip.c_str(), Colors::GREEN);
 			return true;
 		}
 	}
@@ -80,7 +81,7 @@ void initWifi()
 	Serial.println(ssid);
 	Serial.println(passwd);
 
-	if( WiFiConnect("BT-R2Z5", "RNfmYVLu6HUX", 5000))
+	if( WiFiConnect("BT-R2Z5", "RNfmYVLu6HUX", 4000))
 		return;
 	if( WiFiConnect(ssid, passwd, WIFI_CONNECT_TIMEOUT))
 		return;
@@ -208,7 +209,7 @@ void setup()
 	init_config();
 	initMatrix();
 
-	Marquee("Booting...", Colors::BLUE);
+	Marquee("Connecting...", Colors::BLUE);
 
 	initWifi();
 	initWebsite(softAP);
@@ -216,7 +217,7 @@ void setup()
 	initTasks(softAP);
 	init_OTA(softAP);
 
-	Serial.println("Setup Finished");
+	Serial.println("Setup Finished.");
 }
 
 //--------------------------------------------------------------------

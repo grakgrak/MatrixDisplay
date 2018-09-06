@@ -11,11 +11,19 @@
 // OE	GND
 
 ESP32RGBmatrixPanel matrix(
-	14, 23, 22,	// OE CLK LAT
-	0, 15, 2,	 // RGB 1
+	25, 23, 22,	// OE CLK LAT
+	21, 27, 2,	 // RGB 1
 	16, 5, 4,	  // RGB2
 	18, 17, 26, 19 // A B C D
 );
+
+// Original pin layout - also used on PCB
+// ESP32RGBmatrixPanel matrix(
+// 	14, 23, 22,	// OE CLK LAT
+// 	0, 15, 2,	 // RGB 1
+// 	16, 5, 4,	  // RGB2
+// 	18, 17, 26, 19 // A B C D
+// );
 //--------------------------------------------------------------------
 //Display panel connection gpio pins
 // ESP32RGBmatrixPanel matrix(
@@ -145,6 +153,8 @@ void initMatrix()
 
 	matrix.black();
 	matrix.setBrightness(GetCfgInt("Brightness", 2));
+
+	Serial.println("Matrix init.");
 }
 //--------------------------------------------------------------------
 int _writeCounter = 0;

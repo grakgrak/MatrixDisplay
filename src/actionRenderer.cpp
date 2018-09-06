@@ -49,16 +49,6 @@ void fullPWR(const TActionJob &job, int idx)
 	matrix.setCursor(x + 4, 4);
 	matrix.print(text);
 
-	if (job.loop > 0) // display cycle of limit
-	{
-		matrix.setCursor(x + 4, 23);
-		matrix.print(job.loop);
-		matrix.setCursor(matrix.getCursorX() + 1, 23);
-		matrix.print("of");
-		matrix.setCursor(matrix.getCursorX() + 1, 23);
-		matrix.print(job.limit);
-	}
-
 	// display seconds
 	matrix.setTextSize(2);
 	if (job.seconds < 10)
@@ -71,28 +61,23 @@ void fullPWR(const TActionJob &job, int idx)
 
 	matrix.print(job.seconds);
 
+	if (job.loop > 0) // display cycle of limit
+	{
+		matrix.setTextSize(1);
+		matrix.setTextColor(Colors::WHITE);
+		matrix.setCursor(x + 4, 23);
+		matrix.print(job.loop);
+		matrix.setCursor(matrix.getCursorX() + 1, 23);
+		matrix.print("of");
+		matrix.setCursor(matrix.getCursorX() + 1, 23);
+		matrix.print(job.limit);
+	}
+
 	matrixEndWrite();
 }
-
 //--------------------------------------------------------------------
-void drawJob(const TActionJob &job, int count, int idx)
+void smallPWR(const TActionJob &job, int count, int idx)
 {
-	if (job.action == '\0') // code is finished so nothing to show
-		return;
-
-	if (job.action == 'c') // if this is the countdown timer
-	{
-		clockMMSS(job.seconds / 60, job.seconds % 60, count, idx, job.Colour());
-		return;
-	}
-
-	// if we can display 1 or more full PWR
-	if (count * 64 <= COLUMNS)
-	{
-		fullPWR(job, idx);
-		return;
-	}
-
 	matrixStartWrite();
 
 #if COLUMNS == 64
@@ -135,31 +120,62 @@ void drawJob(const TActionJob &job, int count, int idx)
 	matrix.setCursor(x + 3, 3);
 	matrix.print(text);
 
+	int top = 5;
+	int sw = 3;	// get the number of digits
+	if( job.seconds < 10)
+		sw = 1;
+	else 
+		if(job.seconds < 100)
+			sw = 2;
+
 	// display seconds
-	if (count > 3)
+	if(count > 3)
 	{
 		matrix.setTextSize(1);
-		matrix.setCursor((job.seconds < 10) ? mid - 2 : mid - 5, 15);
+		sw = sw * 6;	// 6 = width of size 1 chars
+		top = 12;
 	}
 	else
 	{
-		if (job.loop > 0) // display loop count of limit
-		{
-			matrix.setCursor(x + 3, 23);
-			matrix.print(job.loop);
-			matrix.setCursor(matrix.getCursorX() + 1, 23);
-			matrix.print("of");
-			matrix.setCursor(matrix.getCursorX() + 1, 23);
-			matrix.print(job.limit);
-		}
-
 		matrix.setTextSize(2);
-		matrix.setCursor((job.seconds < 10) ? mid - 5 : mid - 11, job.loop > 0 ? 8 : 11);
+		sw = sw * 12;	// 12 = width of size 2 chars
 	}
 
+	w -= 7;	// adjust for the action char
+	matrix.setCursor(x + 7 + (w - sw) / 2, top);
 	matrix.print(job.seconds);
 
+	 // display loop count of limit
+	if (job.loop > 0)
+	{
+		matrix.setTextSize(1);
+		matrix.setTextColor(Colors::WHITE);
+		//matrix.setCursor(matrix.getCursorX() + 2, 3);
+		matrix.setCursor(x + 3, 23);
+		matrix.print(job.loop);
+		matrix.print("/");
+		matrix.print(job.limit);
+	}
+
 	matrixEndWrite();
+}
+//--------------------------------------------------------------------
+void drawJob(const TActionJob &job, int count, int idx)
+{
+	if (job.action == '\0') // code is finished so nothing to show
+		return;
+
+	if (job.action == 'c') // if this is the countdown timer
+	{
+		clockMMSS(job.seconds / 60, job.seconds % 60, count, idx, job.Colour());
+		return;
+	}
+
+	// if we can display 1 or more full PWR
+	if (count * 64 <= COLUMNS)
+		fullPWR(job, idx);
+	else
+		smallPWR(job, count, idx);
 }
 
 //--------------------------------------------------------------------
@@ -280,9 +296,10 @@ bool showJobState(TActionJob &job, int count, int idx)
 
 	matrixStartWrite();
 
-	int mid = idx * cols[count] + cols[count] / 2;
+	int x = idx * cols[count] + (count == 3); // offset by 1 if showing 3 windows
+	int mid = x + cols[count] / 2;
 
-	matrix.fillRect(idx * cols[count] + 1, 1, cols[count] - 2, 32 - 2, Colors::BLACK);
+	matrix.fillRect(x + 1, 1, cols[count] - 2, 32 - 2, Colors::BLACK);
 
 	// blank the box
 	if( job.action == 'c' && count == 1)	// if this is the countdown timer and its using the whole display
@@ -305,12 +322,12 @@ bool showJobState(TActionJob &job, int count, int idx)
 bool TActionRenderer::Render() // paints the action jobs onto the display
 {
 	// run the intro commands
-	if (Intro != NULL)
-	{
-		Marquee(Intro, Colors::WHITE);
-		Intro = NULL;
-		return true;
-	}
+	// if (Intro != NULL)
+	// {
+	// 	Marquee(Intro, Colors::WHITE);
+	// 	Intro = NULL;
+	// 	return true;
+	// }
 
 	// if some action jobs to run
 	int count = activeJobCount();
