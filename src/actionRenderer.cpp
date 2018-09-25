@@ -7,7 +7,7 @@
 TActionRenderer ActionRenderer;
 
 //--------------------------------------------------------------------
-void fullPWR(const TActionJob &job, int idx)
+void fullPWR(const TActionJob &job, int count, int idx)
 {
 	if (job.action == '\0')
 		return;
@@ -37,6 +37,8 @@ void fullPWR(const TActionJob &job, int idx)
 	}
 
 	int x = idx * 64; // calc the x offset
+	if(count == 1)	// if only one then centre in the display
+		x = 32;
 
 	matrix.fillRect(x, 0, 64, ROWS, 0); // Blank the background
 
@@ -107,6 +109,10 @@ void smallPWR(const TActionJob &job, int count, int idx)
 		text = "R";
 		colour = Colors::GREEN;
 		break;
+	case 'c':
+		text = "";
+		colour = Colors::WHITE;
+		break;
 	}
 
 	matrix.setFont(NULL);
@@ -173,7 +179,7 @@ void drawJob(const TActionJob &job, int count, int idx)
 
 	// if we can display 1 or more full PWR
 	if (count * 64 <= COLUMNS)
-		fullPWR(job, idx);
+		fullPWR(job, count, idx);
 	else
 		smallPWR(job, count, idx);
 }

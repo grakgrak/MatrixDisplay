@@ -48,7 +48,7 @@
 				<th>Secure</th>
 			</theader>
 			<tbody>
-				<tr v-for="(ap,index) in scan">
+				<tr v-for="ap in scan">
 					<td>{{ ap.ssid }}</td>
 					<td>{{ ap.rssi }}</td>
 					<td>{{ ap.channel }}</td>
@@ -114,14 +114,10 @@
 			},
 			loadScan: function () {
 				fetch("json/scan")
-					.then(function (resp) {
-						return resp.json();
-					})
-					.then(function (j) {
-						console.log(j);
-						scan = [];
-						for (i = 0; i < j.length; ++i)
-							scan.push(j[i]);
+					.then(resp => resp.json())
+					.then(json => {
+						console.log(json);
+						this.scan = json.aps;
 					})
 					.catch(function (error) {
 						console.log(error);

@@ -10,28 +10,21 @@
 // CLK	LAT
 // OE	GND
 
+// Hand wired verison using WeMo
+//ESP32RGBmatrixPanel matrix(
+//	25, 23, 22,	// OE CLK LAT
+//	21, 27, 2,	 // RGB 1
+//	16, 5, 4,	  // RGB2
+//	18, 17, 26, 19 // A B C D
+//);
+
+// Original pin layout - also used on PCB
 ESP32RGBmatrixPanel matrix(
-	25, 23, 22,	// OE CLK LAT
-	21, 27, 2,	 // RGB 1
+	14, 23, 22,	// OE CLK LAT
+	0, 15, 2,	 // RGB 1
 	16, 5, 4,	  // RGB2
 	18, 17, 26, 19 // A B C D
 );
-
-// Original pin layout - also used on PCB
-// ESP32RGBmatrixPanel matrix(
-// 	14, 23, 22,	// OE CLK LAT
-// 	0, 15, 2,	 // RGB 1
-// 	16, 5, 4,	  // RGB2
-// 	18, 17, 26, 19 // A B C D
-// );
-//--------------------------------------------------------------------
-//Display panel connection gpio pins
-// ESP32RGBmatrixPanel matrix(
-// 	23, 22, 21,	// OE CLK LAT
-// 	17, 16, 4,	 // RGB 1
-// 	0, 2, 15,	  // RGB2
-// 	26, 27, 14, 12 // A B C D
-// );
 
 //--------------------------------------------------------------------
 int16_t RGB(uint8 r, uint8 g, uint8 b)

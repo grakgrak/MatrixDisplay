@@ -266,7 +266,7 @@ void initWebsite(bool softAP)
 	});
 
 	server.on("/json/scan", HTTP_GET, [](AsyncWebServerRequest *request) {
-		String json = "[";
+		String json = "{ \"aps\":[";
 		int n = WiFi.scanComplete();
 		if (n == -2)
 			WiFi.scanNetworks(true);
@@ -289,7 +289,8 @@ void initWebsite(bool softAP)
 			if (WiFi.scanComplete() == -2)
 				WiFi.scanNetworks(true);
 		}
-		json += "]";
+		json += "]}";
+		Serial.println("Scan: " + json);
 		request->send(200, "text/json", json);
 		json = String();
 	});
