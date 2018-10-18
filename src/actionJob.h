@@ -36,11 +36,11 @@ class TActionJob
 
 	inline TJobState State() const	{ return _state;}
 
-	inline bool isReady() { return State() == READY; }
-	inline bool isRunning() { return State() == RUN; }
-	inline bool isPaused() { return State() == PAUSE; }
-	inline bool isDone() { return State() == DONE; }
-	inline bool isActive() { return State() != SLEEPING; }
+	inline bool isReady() const { return State() == READY; }
+	inline bool isRunning() const { return State() == RUN; }
+	inline bool isPaused() const { return State() == PAUSE; }
+	inline bool isDone() const { return State() == DONE; }
+	inline bool isActive() const { return State() != SLEEPING; }
 
 	inline int16_t Colour() const	{return _colour;}
 	inline String Code()	{ return _code;}

@@ -7,12 +7,12 @@
 TActionRenderer ActionRenderer;
 
 //--------------------------------------------------------------------
-void fullPWR(const TActionJob &job, int count, int idx)
+void fullPWR(const TActionJob &job, int x)
 {
 	if (job.action == '\0')
 		return;
 
-	matrixStartWrite();
+	//matrixStartWrite();
 
 	int16_t colour;
 	const char *text;
@@ -35,10 +35,6 @@ void fullPWR(const TActionJob &job, int count, int idx)
 		colour = Colors::WHITE;
 		break;
 	}
-
-	int x = idx * 64; // calc the x offset
-	if(count == 1)	// if only one then centre in the display
-		x = 32;
 
 	matrix.fillRect(x, 0, 64, ROWS, 0); // Blank the background
 
@@ -75,21 +71,13 @@ void fullPWR(const TActionJob &job, int count, int idx)
 		matrix.print(job.limit);
 	}
 
-	matrixEndWrite();
+	//matrixEndWrite();
 }
 //--------------------------------------------------------------------
-void smallPWR(const TActionJob &job, int count, int idx)
+void smallPWR(const TActionJob &job, int x, int w, bool tinySecs)
 {
-	matrixStartWrite();
+	//matrixStartWrite();
 
-#if COLUMNS == 64
-	int cols[] = {0, 64, 32, 21, 16};
-#else
-	int cols[] = {0, 64, 64, 42, 32};
-#endif
-
-	int x = idx * cols[count] + (count == 3); // offset by 1 if showing 3 windows
-	int w = cols[count];
 	int mid = x + w / 2;
 
 	// get the colour
@@ -126,7 +114,7 @@ void smallPWR(const TActionJob &job, int count, int idx)
 	matrix.setCursor(x + 3, 3);
 	matrix.print(text);
 
-	int top = 5;
+	int top = 0;
 	int sw = 3;	// get the number of digits
 	if( job.seconds < 10)
 		sw = 1;
@@ -135,7 +123,7 @@ void smallPWR(const TActionJob &job, int count, int idx)
 			sw = 2;
 
 	// display seconds
-	if(count > 3)
+	if(tinySecs)
 	{
 		matrix.setTextSize(1);
 		sw = sw * 6;	// 6 = width of size 1 chars
@@ -145,6 +133,7 @@ void smallPWR(const TActionJob &job, int count, int idx)
 	{
 		matrix.setTextSize(2);
 		sw = sw * 12;	// 12 = width of size 2 chars
+		top = 5;
 	}
 
 	w -= 7;	// adjust for the action char
@@ -163,7 +152,7 @@ void smallPWR(const TActionJob &job, int count, int idx)
 		matrix.print(job.limit);
 	}
 
-	matrixEndWrite();
+	//matrixEndWrite();
 }
 //--------------------------------------------------------------------
 void drawJob(const TActionJob &job, int count, int idx)
@@ -177,11 +166,21 @@ void drawJob(const TActionJob &job, int count, int idx)
 		return;
 	}
 
-	// if we can display 1 or more full PWR
-	if (count * 64 <= COLUMNS)
-		fullPWR(job, count, idx);
-	else
-		smallPWR(job, count, idx);
+	switch(count)
+	{
+		case 1:
+			fullPWR(job, 32);
+			break;
+		case 2:
+			fullPWR(job, 64 * idx);
+			break;
+		case 3:
+			smallPWR(job, idx * 42 + 1, 42, false);	// offset by 1
+			break;
+		case 4:
+			smallPWR(job, idx * 32, 32, true);
+			break;
+	}
 }
 
 //--------------------------------------------------------------------
@@ -294,15 +293,13 @@ bool showJobState(TActionJob &job, int count, int idx)
 	if (job.isPaused() == false && job.isDone() == false)
 		return true;
 
-#if COLUMNS == 64
-	int cols[] = {0, 64, 32, 21, 16};
-#else
 	int cols[] = {0, 64, 64, 42, 32};
-#endif
 
 	matrixStartWrite();
 
 	int x = idx * cols[count] + (count == 3); // offset by 1 if showing 3 windows
+	if( count == 1 )
+		x = 32;
 	int mid = x + cols[count] / 2;
 
 	matrix.fillRect(x + 1, 1, cols[count] - 2, 32 - 2, Colors::BLACK);
